@@ -11,6 +11,7 @@ import ConfirmInfoScreen from '../screens/signup/ConfirmInfoScreen';
 import VerifyCodeScreen from '../screens/auth/VerifyCodeScreen';
 import SplashScreen from '../screens/auth/SplashScreen';
 import HomeScreen from '../screens/home/HomeScreen';
+import NotificationScreen from '../screens/notifications/NotificationScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -29,6 +30,7 @@ export default function AppNavigator() {
         <Stack.Screen name="VerifyCode" component={VerifyCodeScreen} />
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Notification" component={NotificationScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

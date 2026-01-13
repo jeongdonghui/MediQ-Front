@@ -25,6 +25,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const handleBellPress = () => {
     console.log('알림 클릭');
     setHasNotification(false);
+    // ✅ [수정] 알림 화면으로 이동
+    navigation?.navigate('Notification');
   };
 
   const handleMenuPress = () => {
@@ -53,7 +55,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         {/* ===== 상단 헤더 ===== */}
         <View style={styles.headerRow}>
           <Image
-            source={require('../assets/image/logo_mediqC.png')}
+            source={require('../../assets/image/logo_mediqC.png')}
             style={styles.logo}
           />
 
@@ -64,7 +66,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.bellWrapper}
             >
               <Image
-                source={require('../assets/image/bell.png')}
+                source={require('../../assets/image/bell.png')}
                 style={styles.bellIcon}
               />
               {hasNotification && <View style={styles.bellDot} />}
@@ -76,7 +78,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.menuWrapper}
             >
               <Image
-                source={require('../assets/image/buger.png')}
+                source={require('../../assets/image/buger.png')}
                 style={styles.menuIcon}
               />
             </TouchableOpacity>
@@ -89,7 +91,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.greetingText}>홍길동님{'\n'}안녕하세요.</Text>
           </View>
           <Image
-            source={require('../assets/image/profile.png')}
+            source={require('../../assets/image/profile.png')}
             style={styles.profileImage}
           />
         </View>
@@ -101,7 +103,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           onPress={handleBigQPress}
         >
           <Image
-            source={require('../assets/image/Qbtn.png')}
+            source={require('../../assets/image/Qbtn.png')}
             style={styles.bigQCardImage}
           />
         </TouchableOpacity>
@@ -115,7 +117,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleMapPress}
           >
             <Image
-              source={require('../assets/image/mapbtn.png')}
+              source={require('../../assets/image/mapbtn.png')}
               style={styles.mapCardImage}
             />
           </TouchableOpacity>
@@ -134,7 +136,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.sectionTitle}>실시간 인기글</Text>
             <TouchableOpacity activeOpacity={0.8}>
               <Image
-                source={require('../assets/image/next.png')}
+                source={require('../../assets/image/next.png')}
                 style={styles.nextIcon}
               />
             </TouchableOpacity>
@@ -204,7 +206,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onPress={handleFloatingQPress}
       >
         <Image
-          source={require('../assets/image/Qbtns.png')}
+          source={require('../../assets/image/Qbtns.png')}
           style={styles.floatingQImage}
         />
       </TouchableOpacity>
