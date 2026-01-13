@@ -30,7 +30,7 @@ const SplashScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       <Image
-        source={require('../assets/image/logo_mediqC.png')}
+        source={require('../../assets/image/logo_mediqC.png')}
         style={styles.logo}
       />
     </View>

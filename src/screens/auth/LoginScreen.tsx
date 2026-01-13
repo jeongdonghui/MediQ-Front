@@ -34,7 +34,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       {/* 가운데 로고 */}
       <View style={styles.logoContainer}>
         <Image
-          source={require('../assets/image/logo_mediq.png')}
+          source={require('../../assets/image/logo_mediq.png')}
           style={styles.logoImage}
         />
       </View>
@@ -48,7 +48,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.buttonWrapper}
         >
           <Image
-            source={require('../assets/image/btn_kakao.png')}
+            source={require('../../assets/image/btn_kakao.png')}
             style={styles.buttonImage}
           />
         </TouchableOpacity>
@@ -60,7 +60,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           style={[styles.buttonWrapper, styles.appleButtonWrapper]}
         >
           <Image
-            source={require('../assets/image/btn_apple.png')}
+            source={require('../../assets/image/btn_apple.png')}
             style={styles.buttonImage}
           />
         </TouchableOpacity>

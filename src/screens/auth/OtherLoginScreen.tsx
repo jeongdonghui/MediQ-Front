@@ -34,7 +34,7 @@ const OtherLoginScreen: React.FC<Props> = ({ navigation }) => {
       {/* 상단 로고 (LoginScreen과 동일 구조) */}
       <View style={styles.logoContainer}>
         <Image
-          source={require('../assets/image/logo_mediq.png')}
+          source={require('../../assets/image/logo_mediq.png')}
           style={styles.logoImage}
         />
       </View>
@@ -51,7 +51,7 @@ const OtherLoginScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleFacebook}
           >
             <Image
-              source={require('../assets/image/btn_facebook.png')}
+              source={require('../../assets/image/btn_facebook.png')}
               style={styles.icon}
               resizeMode="contain"
             />
@@ -65,7 +65,7 @@ const OtherLoginScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleNaver}
           >
             <Image
-              source={require('../assets/image/btn_naver.png')}
+              source={require('../../assets/image/btn_naver.png')}
               style={styles.icon}
               resizeMode="contain"
             />
@@ -79,7 +79,7 @@ const OtherLoginScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleCert}
           >
             <Image
-              source={require('../assets/image/btn_phone.png')}
+              source={require('../../assets/image/btn_phone.png')}
               style={styles.icon}
               resizeMode="contain"
             />
