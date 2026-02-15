@@ -1,4 +1,4 @@
-// src/screens/LoginScreen.tsx
+// src/screens/auth/LoginScreen.tsx
 import React from 'react';
 import {
   View,
@@ -20,13 +20,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     console.log('카카오 로그인');
   };
 
-  const handleAppleLogin = () => {
-    console.log('애플 로그인');
+  const handleMediqLogin = () => {
+    console.log('MediQ 자체 로그인');
+    navigation?.navigate('OtherLogin'); // ✅ 기존 OtherLogin을 “MediQ 로그인” 화면으로 쓸 예정이면 유지
   };
 
-  const handleOtherLogin = () => {
-    console.log('다른 방법으로 로그인');
-    navigation?.navigate('OtherLogin');
+  const handleSignup = () => {
+    console.log('회원가입');
+    navigation?.navigate('IdInput'); // ✅ [CHANGED] 회원가입 → 아이디 입력 화면으로 이동
   };
 
   return (
@@ -53,25 +54,25 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           />
         </TouchableOpacity>
 
-        {/* 애플 로그인 버튼 */}
+        {/* ✅ [CHANGED] MediQ 자체 로그인 버튼 (btn_mediq) */}
         <TouchableOpacity
           activeOpacity={0.85}
-          onPress={handleAppleLogin}
-          style={[styles.buttonWrapper, styles.appleButtonWrapper]}
+          onPress={handleMediqLogin}
+          style={[styles.buttonWrapper, styles.mediqButtonWrapper]}
         >
           <Image
-            source={require('../../assets/image/btn_apple.png')}
+            source={require('../../assets/image/btn_mediq.png')}
             style={styles.buttonImage}
           />
         </TouchableOpacity>
 
-        {/* 다른 방법으로 로그인 */}
+        {/* ✅ [CHANGED] 회원가입 */}
         <TouchableOpacity
-          onPress={handleOtherLogin}
+          onPress={handleSignup}
           activeOpacity={0.7}
-          style={styles.otherLoginWrapper}
+          style={styles.signupWrapper}
         >
-          <Text style={styles.otherLoginText}>다른 방법으로 로그인</Text>
+          <Text style={styles.signupText}>회원가입</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoImage: {
-    width: 190,   // 시안 기준 대략 비율
+    width: 190,
     height: 80,
     resizeMode: 'contain',
   },
@@ -104,33 +105,33 @@ const styles = StyleSheet.create({
     paddingBottom: 42,
   },
 
-  // 버튼을 감싸는 공통 박스 (두 버튼 크기 완전 동일)
   buttonWrapper: {
     width: '100%',
-    height: 56,        // 시안보다 살짝 크게 (필요하면 52로 줄여도 됨)
+    height: 56,
     borderRadius: 28,
     overflow: 'hidden',
     marginBottom: 12,
   },
-  appleButtonWrapper: {
+
+  // ✅ [CHANGED] 두 번째 버튼 상단 간격만 살짝
+  mediqButtonWrapper: {
     marginTop: 6,
   },
 
-  // 실제 버튼 이미지 (틀 내부를 꽉 채우도록)
   buttonImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
 
-  // “다른 방법으로 로그인”
-  otherLoginWrapper: {
+  // ✅ [CHANGED] 회원가입 텍스트
+  signupWrapper: {
     marginTop: 10,
     alignItems: 'center',
   },
-  otherLoginText: {
+  signupText: {
     fontSize: 12,
     color: WHITE,
     opacity: 0.95,
   },
-})
+});

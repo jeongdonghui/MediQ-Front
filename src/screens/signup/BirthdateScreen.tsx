@@ -1,200 +1,173 @@
-// src/screens/BirthdateScreen.tsx
-import React, { useState } from 'react';
+// src/screens/signup/BirthdateScreen.tsx
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
 } from 'react-native';
 
 const BLUE = '#3FA2FF';
 const WHITE = '#FFFFFF';
 
-type Props = {
-  navigation?: any;
-  route?: any;
-};
+type Props = { navigation?: any; route?: any };
 
-const CARRIERS = [
-  'SKT',
-  'KT',
-  'LG U+',
-  'SKT 알뜰폰',
-  'KT 알뜰폰',
-  'LG U+ 알뜰폰',
-];
+export default function BirthdateScreen({ navigation, route }: Props) {
+  const params = route?.params ?? {};
 
-const BirthdateScreen: React.FC<Props> = ({ navigation, route }) => {
-  const nameFromPrev = route?.params?.name ?? '';
+  const id: string = params.id ?? '';
+  const password: string = params.password ?? '';
+  const name: string = params.name ?? '';
+  const nickname: string = params.nickname ?? '';
 
-  const [carrier, setCarrier] = useState<string | null>(null);
-  const [birthFront, setBirthFront] = useState('');
-  const [birthBack, setBirthBack] = useState('');
-  const [sheetVisible, setSheetVisible] = useState(false);
+  // ✅ 뒤로 갔다가 다시 왔을 때 값 유지(있으면 채우기)
+  const initialFront6 = (params.birthFront6 ?? '').toString().replace(/\D/g, '').slice(0, 6);
+  const initialBack1 = (params.birthBack1 ?? '').toString().replace(/\D/g, '').slice(0, 1);
 
+  // 앞 6자리(YYMMDD) + 뒤 1자리
+  const [front6, setFront6] = useState(initialFront6);
+  const [back1, setBack1] = useState(initialBack1);
+
+  const frontRef = useRef<TextInput | null>(null);
+  const backRef = useRef<TextInput | null>(null);
+
+  // ✅ 중복 이동 방지(연타/중복 렌더)
+  const navLockRef = useRef(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      // 값이 이미 6자리면 뒤로 바로 포커스
+      if (front6.length === 6) backRef.current?.focus();
+      else frontRef.current?.focus();
+    }, 150);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ✅ 뒤로는 goBack, 스택이 비정상이면 NameInput으로 복구
   const handleBack = () => {
-    navigation?.goBack();
-  };
-
-  const openCarrierSheet = () => {
-    setSheetVisible(true);
-  };
-
-  const closeCarrierSheet = () => {
-    setSheetVisible(false);
-  };
-
-  const handleSelectCarrier = (value: string) => {
-    setCarrier(value);
-    setSheetVisible(false);
-  };
-
-  const handleNext = () => {
-    if (isNextDisabled) return;
-
-    const birth = `${birthFront}-${birthBack}`;
-    console.log('통신사:', carrier);
-    console.log('생년월일:', birth);
-    console.log('이름:', nameFromPrev);
-
-    // TODO: 다음 단계 화면으로 이동
-    navigation?.navigate('ConfirmInfo', {
-     name: nameFromPrev,
-     carrier,
-     birthFront,
-     birthBack,
+    if (navigation?.canGoBack?.()) {
+      navigation.goBack();
+      return;
+    }
+    navigation?.reset?.({
+      index: 0,
+      routes: [{ name: 'NameInput', params: { id, password } }],
     });
   };
 
-  const isNextDisabled =
-    !carrier || birthFront.length !== 6 || birthBack.length !== 7;
+  const onChangeFront = (t: string) => {
+    const digits = t.replace(/\D/g, '').slice(0, 6);
+    setFront6(digits);
+
+    if (digits.length === 6) {
+      // 키보드 이벤트/렌더 타이밍 때문에 약간 딜레이
+      setTimeout(() => backRef.current?.focus(), 60);
+    }
+  };
+
+  const onChangeBack = (t: string) => {
+    const digit = t.replace(/\D/g, '').slice(0, 1);
+    setBack1(digit);
+  };
+
+  const isNextDisabled = useMemo(
+    () => front6.length !== 6 || back1.length !== 1,
+    [front6, back1],
+  );
+
+  const onNext = () => {
+    if (navLockRef.current) return;
+    if (front6.length !== 6 || back1.length !== 1) return;
+
+    navLockRef.current = true;
+    Keyboard.dismiss();
+
+    navigation?.navigate('PhoneNumber', {
+      id,
+      password,
+      name,
+      nickname,
+      birthFront6: front6,
+      birthBack1: back1,
+    });
+
+    setTimeout(() => {
+      navLockRef.current = false;
+    }, 600);
+  };
 
   return (
-    <View style={styles.container}>
-      {/* 상단 뒤로가기 */}
-      <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-        <Text style={styles.backText}>{'‹'}</Text>
-      </TouchableOpacity>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: BLUE }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View style={styles.container}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Text style={styles.backText}>‹</Text>
+        </TouchableOpacity>
 
-      {/* 메인 내용 */}
-      <View style={styles.content}>
-        <Text style={styles.title}>
-          생년월일을{'\n'}입력해주세요
-        </Text>
+        <View style={styles.content}>
+          <Text style={styles.title}>
+            생년월일을{'\n'}입력해주세요
+          </Text>
 
-        {/* 통신사 필드 */}
-        <View style={styles.fieldGroup}>
-          <View style={styles.fieldHeader}>
-            <Text style={styles.label}>통신사</Text>
-            <TouchableOpacity
-              onPress={openCarrierSheet}
-              style={styles.carrierSelect}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.carrierText}>
-                {carrier ?? ''}
-              </Text>
-              <Text style={styles.dropdownArrow}>⌵</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.underline} />
-        </View>
-
-        {/* 생년월일 */}
-        <View style={styles.fieldGroup}>
           <Text style={styles.label}>생년월일</Text>
 
           <View style={styles.birthRow}>
             <TextInput
-              style={[styles.birthInput, styles.birthFrontInput]}
-              value={birthFront}
-              onChangeText={text => {
-                const onlyNums = text.replace(/[^0-9]/g, '');
-                setBirthFront(onlyNums.slice(0, 6));
-              }}
+              ref={frontRef}
+              style={[styles.input, styles.frontInput]}
+              value={front6}
+              onChangeText={onChangeFront}
               placeholder="예시:900101"
-              placeholderTextColor="rgba(255,255,255,0.8)"
+              placeholderTextColor="rgba(255,255,255,0.6)"
               keyboardType="number-pad"
+              returnKeyType="next"
               maxLength={6}
-            />
-            <Text style={styles.hyphen}>-</Text>
-            <TextInput
-              style={[styles.birthInput, styles.birthBackInput]}
-              value={birthBack}
-              onChangeText={text => {
-                const onlyNums = text.replace(/[^0-9]/g, '');
-                setBirthBack(onlyNums.slice(0, 7));
+              onSubmitEditing={() => {
+                if (front6.length === 6) backRef.current?.focus();
               }}
-              keyboardType="number-pad"
-              secureTextEntry={true}
-              maxLength={7}
             />
+
+            <Text style={styles.hyphen}> - </Text>
+
+            <TextInput
+              ref={backRef}
+              style={[styles.input, styles.backInput]}
+              value={back1}
+              onChangeText={onChangeBack}
+              placeholder=""
+              placeholderTextColor="rgba(255,255,255,0.6)"
+              keyboardType="number-pad"
+              returnKeyType="done"
+              secureTextEntry
+              maxLength={1}
+              onSubmitEditing={onNext} // ✅ 여기서만 next 호출(버튼과 중복되지만 lock으로 1회만)
+            />
+
+            <Text style={styles.dots}>●●●●●●</Text>
           </View>
+
           <View style={styles.underline} />
         </View>
 
-        {/* 이름 (읽기 전용) */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>이름</Text>
-          <Text style={styles.nameValue}>{nameFromPrev}</Text>
-          <View style={styles.underline} />
-        </View>
-      </View>
-
-      {/* 하단 다음 버튼 (NameInputScreen 과 위치/스타일 통일) */}
-      <TouchableOpacity
-        style={[
-          styles.nextButton,
-          isNextDisabled && styles.nextButtonDisabled,
-        ]}
-        activeOpacity={isNextDisabled ? 1 : 0.8}
-        disabled={isNextDisabled}
-        onPress={handleNext}
-      >
-        <Text style={styles.nextButtonText}>다음</Text>
-      </TouchableOpacity>
-
-      {/* 통신사 선택 시트 */}
-      <Modal
-        visible={sheetVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={closeCarrierSheet}
-      >
         <TouchableOpacity
-          style={styles.sheetBackdrop}
-          activeOpacity={1}
-          onPress={closeCarrierSheet}
+          style={[styles.nextBar, isNextDisabled && styles.nextBarDisabled]}
+          activeOpacity={isNextDisabled ? 1 : 0.8}
+          disabled={isNextDisabled}
+          onPress={onNext}
         >
-          <View />
+          <Text style={styles.nextBarText}>다음</Text>
         </TouchableOpacity>
-
-        <View style={styles.sheetContainer}>
-          {CARRIERS.map(item => {
-            const selected = carrier === item;
-            return (
-              <TouchableOpacity
-                key={item}
-                style={styles.sheetRow}
-                activeOpacity={0.8}
-                onPress={() => handleSelectCarrier(item)}
-              >
-                <Text style={styles.sheetText}>{item}</Text>
-                <View style={styles.radioOuter}>
-                  {selected && <View style={styles.radioInner} />}
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </Modal>
-    </View>
+      </View>
+    </KeyboardAvoidingView>
   );
-};
-
-export default BirthdateScreen;
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -202,22 +175,12 @@ const styles = StyleSheet.create({
     backgroundColor: BLUE,
     paddingHorizontal: 24,
     paddingTop: 24,
+    paddingBottom: 56,
   },
+  backButton: { paddingVertical: 4, marginBottom: 8 },
+  backText: { fontSize: 28, color: WHITE, fontWeight: '500' },
 
-  backButton: {
-    paddingVertical: 4,
-    marginBottom: 8,
-  },
-  backText: {
-    fontSize: 20,
-    color: WHITE,
-    fontWeight: '400',
-  },
-
-  content: {
-    flex: 1,
-    marginTop: 24,
-  },
+  content: { flex: 1, marginTop: 24 },
 
   title: {
     fontSize: 26,
@@ -227,16 +190,6 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
 
-  fieldGroup: {
-    marginBottom: 24,
-  },
-
-  fieldHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-
   label: {
     fontSize: 13,
     color: WHITE,
@@ -244,108 +197,48 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  underline: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    marginTop: 4,
-  },
-
-  carrierSelect: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  carrierText: {
-    fontSize: 15,
-    color: WHITE,
-    marginRight: 4,
-  },
-  dropdownArrow: {
-    fontSize: 14,
-    color: WHITE,
-  },
-
   birthRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
   },
-  birthInput: {
+
+  input: {
     fontSize: 16,
     color: WHITE,
     paddingVertical: 4,
   },
-  birthFrontInput: {
-    width: 120,
-  },
-  birthBackInput: {
-    width: 90,
-    letterSpacing: 4,
-  },
+  frontInput: { width: 140 },
   hyphen: {
-    fontSize: 18,
     color: WHITE,
+    fontSize: 16,
     marginHorizontal: 8,
+    opacity: 0.9,
   },
-
-  nameValue: {
-    fontSize: 16,
+  backInput: { width: 30, textAlign: 'center' },
+  dots: {
+    marginLeft: 10,
     color: WHITE,
-    paddingVertical: 4,
-  },
-
-  // 하단 다음 버튼 (NameInputScreen과 동일 위치 느낌)
-  nextButton: {
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: WHITE,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 80, // NameInputScreen에서 너가 맞춰둔 값과 동일
-  },
-  nextButtonDisabled: {
-    opacity: 0.4,
-  },
-  nextButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: BLUE,
+    letterSpacing: 2,
+    opacity: 0.9,
   },
 
-  // 통신사 선택 시트
-  sheetBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.25)',
+  underline: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    marginTop: 8,
   },
-  sheetContainer: {
+
+  nextBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 56,
     backgroundColor: WHITE,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-  },
-  sheetRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-  },
-  sheetText: {
-    fontSize: 15,
-    color: '#222222',
-  },
-  radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#CCCCCC',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: BLUE,
-  },
+  nextBarDisabled: { opacity: 0.4 },
+  nextBarText: { fontSize: 16, fontWeight: '600', color: BLUE },
 });

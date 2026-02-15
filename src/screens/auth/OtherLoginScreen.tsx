@@ -1,11 +1,11 @@
-// src/screens/OtherLoginScreen.tsx
-import React from 'react';
+// src/screens/auth/OtherLoginScreen.tsx
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
+  TextInput,
 } from 'react-native';
 
 const BLUE = '#3FA2FF';
@@ -16,74 +16,99 @@ type Props = {
 };
 
 const OtherLoginScreen: React.FC<Props> = ({ navigation }) => {
-  const handleFacebook = () => {
-    console.log('페이스북으로 시작하기');
+  const [userId, setUserId] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleBack = () => {
+    navigation?.goBack?.();
   };
 
-  const handleNaver = () => {
-    console.log('네이버로 시작하기');
+  const handleLogin = () => {
+    console.log('MediQ 자체 로그인', { userId, password });
   };
 
-  const handleCert = () => {
-    console.log('본인 인증으로 시작하기');
-    navigation?.navigate('NameInput'); // ✅ 이름 입력 화면으로 이동
+  const handleFindId = () => {
+    console.log('아이디 찾기');
+  };
+
+  const handleFindPw = () => {
+    console.log('비밀번호 찾기');
   };
 
   return (
     <View style={styles.container}>
-      {/* 상단 로고 (LoginScreen과 동일 구조) */}
-      <View style={styles.logoContainer}>
-        <Image
-          source={require('../../assets/image/logo_mediq.png')}
-          style={styles.logoImage}
-        />
-      </View>
+      {/* 상단 파란 영역 */}
+      <View style={styles.topBlue} />
 
-      {/* 하단 카드 영역 */}
-      <View style={styles.cardContainer}>
-        <View style={styles.card}>
-          <Text style={styles.title}>다른 방법으로 로그인</Text>
-
-          {/* 1. 페이스북 */}
+      {/* 흰 카드 */}
+      <View style={styles.card}>
+        {/* ✅ 헤더(원래 위치 유지: 카드 안) */}
+        <View style={styles.headerRow}>
           <TouchableOpacity
-            style={styles.row}
-            activeOpacity={0.8}
-            onPress={handleFacebook}
+            onPress={handleBack}
+            activeOpacity={0.7}
+            style={styles.backBtn}
           >
-            <Image
-              source={require('../../assets/image/btn_facebook.png')}
-              style={styles.icon}
-              resizeMode="contain"
-            />
-            <Text style={styles.rowText}>페이스북으로 시작하기</Text>
+            {/* ✅ [CHANGED] '<' → '‹' (모양만 변경) */}
+            <Text style={styles.backText}>‹</Text>
           </TouchableOpacity>
 
-          {/* 2. 네이버 */}
-          <TouchableOpacity
-            style={styles.row}
-            activeOpacity={0.8}
-            onPress={handleNaver}
-          >
-            <Image
-              source={require('../../assets/image/btn_naver.png')}
-              style={styles.icon}
-              resizeMode="contain"
-            />
-            <Text style={styles.rowText}>네이버로 시작하기</Text>
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>MediQ 자체 로그인</Text>
 
-          {/* 3. 본인 인증 */}
-          <TouchableOpacity
-            style={styles.row}
-            activeOpacity={0.8}
-            onPress={handleCert}
-          >
-            <Image
-              source={require('../../assets/image/btn_phone.png')}
-              style={styles.icon}
-              resizeMode="contain"
+          {/* 오른쪽 공간 맞춤용 더미 */}
+          <View style={styles.headerRightDummy} />
+        </View>
+
+        {/* 입력 영역 */}
+        <View style={styles.formArea}>
+          <View style={styles.inputShadowWrap}>
+            <TextInput
+              value={userId}
+              onChangeText={setUserId}
+              placeholder="아이디"
+              placeholderTextColor="#A3A3A3"
+              style={styles.input}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="next"
             />
-            <Text style={styles.rowText}>본인 인증으로 시작하기</Text>
+          </View>
+
+          <View style={[styles.inputShadowWrap, { marginTop: 14 }]}>
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="비밀번호"
+              placeholderTextColor="#A3A3A3"
+              style={styles.input}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="done"
+            />
+          </View>
+
+          <View style={styles.findRow}>
+            <TouchableOpacity onPress={handleFindId} activeOpacity={0.7}>
+              <Text style={styles.findText}>아이디 찾기</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.findDivider}> | </Text>
+
+            <TouchableOpacity onPress={handleFindPw} activeOpacity={0.7}>
+              <Text style={styles.findText}>비밀번호 찾기</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 하단 로그인 버튼 */}
+        <View style={styles.bottomArea}>
+          <TouchableOpacity
+            onPress={handleLogin}
+            activeOpacity={0.85}
+            style={styles.loginBtn}
+          >
+            <Text style={styles.loginBtnText}>로그인</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -99,52 +124,114 @@ const styles = StyleSheet.create({
     backgroundColor: BLUE,
   },
 
-  // 로고 영역 (LoginScreen 기준)
-  logoContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoImage: {
-    width: 220,
-    height: 90,
-    resizeMode: 'contain',
+  // 상단 파란 영역
+  topBlue: {
+    height: 120,
+    backgroundColor: BLUE,
   },
 
-  // ⬇️ 아래 공백 줄이기: marginBottom 제거
-  cardContainer: {
-    justifyContent: 'flex-end',
-  },
+  // 흰 카드
   card: {
+    flex: 1,
     backgroundColor: WHITE,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    paddingTop: 24,
-    paddingBottom: 28,
-    paddingHorizontal: 28,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 8,
+    paddingHorizontal: 22,
+    paddingTop: 18,
+    paddingBottom: 18,
   },
-  title: {
-    fontSize: 17,
-    fontWeight: '700',
-    marginBottom: 22,
-  },
-  row: {
+
+  // 헤더
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    marginBottom: 18,
   },
-  icon: {
-    width: 24,
-    height: 24,
-    marginRight: 12,
+  backBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
-  rowText: {
-    fontSize: 15,
-    color: '#222222',
+  backText: {
+    // ✅ [CHANGED] 모양/느낌만 부드럽게
+    fontSize: 28,
+    fontWeight: '500',
+    color: '#111111',
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#111111',
+  },
+  headerRightDummy: {
+    width: 36,
+    height: 36,
+  },
+
+  // 폼 영역
+  formArea: {
+    paddingTop: 8,
+  },
+
+  // 입력창
+  inputShadowWrap: {
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  input: {
+    height: 52,
+    paddingHorizontal: 16,
+    fontSize: 13,
+    color: '#111111',
+  },
+
+  // 아이디/비번 찾기
+  findRow: {
+    marginTop: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  findText: {
+    fontSize: 12,
+    color: '#8A8A8A',
+    fontWeight: '600',
+  },
+  findDivider: {
+    fontSize: 12,
+    color: '#B0B0B0',
+    marginHorizontal: 6,
+  },
+
+  // 하단 로그인 버튼
+  bottomArea: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingBottom: 8,
+  },
+  loginBtn: {
+    height: 54,
+    borderRadius: 10,
+    backgroundColor: '#5FB2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.10,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  loginBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });

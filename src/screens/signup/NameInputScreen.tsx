@@ -1,11 +1,13 @@
-// src/screens/NameInputScreen.tsx
-import React, { useState, useRef, useEffect } from 'react';
+// src/screens/signup/NameInputScreen.tsx
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 
 const BLUE = '#3FA2FF';
@@ -13,82 +15,127 @@ const WHITE = '#FFFFFF';
 
 type Props = {
   navigation?: any;
+  route?: any;
 };
 
-const NameInputScreen: React.FC<Props> = ({ navigation }) => {
+type Step = 'NAME' | 'NICKNAME';
+
+export default function NameInputScreen({ navigation, route }: Props) {
+  // ✅ 이전 화면에서 넘어온 값들(없어도 동작)
+  const idFromPrev = route?.params?.id ?? '';
+  const passwordFromPrev = route?.params?.password ?? '';
+
+  const [step, setStep] = useState<Step>('NAME');
+
   const [name, setName] = useState('');
+  const [nickname, setNickname] = useState('');
+
   const inputRef = useRef<TextInput | null>(null);
 
-  const handleBack = () => {
-    navigation?.goBack();
-  };
-
-  const handleSubmit = () => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-
-    console.log('입력한 이름:', trimmed);
-    // TODO: 다음 화면으로 이동 (예: PhoneInput)
-    navigation?.navigate('Birthdate', { name: trimmed });
-  };
-
-  // 화면 진입 후 약간 딜레이 주고 자동 포커스
   useEffect(() => {
     const timer = setTimeout(() => {
       inputRef.current?.focus();
     }, 150);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [step]);
 
-  const isNextDisabled = name.trim().length === 0;
+  const handleBack = () => {
+    // 닉네임 단계에서 뒤로가기면 이름 단계로
+    if (step === 'NICKNAME') {
+      setStep('NAME');
+      return;
+    }
+    navigation?.goBack();
+  };
+
+  const titleText = useMemo(() => {
+    return step === 'NAME'
+      ? `이름을\n입력해주세요`
+      : `닉네임을\n입력해주세요`;
+  }, [step]);
+
+  const labelText = useMemo(() => {
+    return step === 'NAME' ? '이름' : '닉네임';
+  }, [step]);
+
+  const value = step === 'NAME' ? name : nickname;
+
+  const isNextDisabled = useMemo(() => {
+    if (step === 'NAME') return name.trim().length === 0;
+    return nickname.trim().length === 0;
+  }, [step, name, nickname]);
+
+  const handleSubmit = () => {
+    if (step === 'NAME') {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      setName(trimmed);
+      setStep('NICKNAME');
+      return;
+    }
+
+    const trimmedNick = nickname.trim();
+    if (!trimmedNick) return;
+    setNickname(trimmedNick);
+
+    // ✅ 두 화면(이름/닉네임) 끝나면 Birthdate로 이동
+    navigation?.navigate('Birthdate', {
+      id: idFromPrev,
+      password: passwordFromPrev,
+      name: name.trim(),
+      nickname: trimmedNick,
+    });
+  };
 
   return (
-    <View style={styles.container}>
-      {/* 상단 뒤로가기 버튼 */}
-      <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-        <Text style={styles.backText}>{'‹'}</Text>
-      </TouchableOpacity>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: BLUE }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View style={styles.container}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+          <Text style={styles.backText}>{'‹'}</Text>
+        </TouchableOpacity>
 
-      {/* 메인 내용 */}
-      <View style={styles.content}>
-        <Text style={styles.title}>
-          이름을{'\n'}입력해주세요
-        </Text>
+        <View style={styles.content}>
+          <Text style={styles.title}>{titleText}</Text>
 
-        <Text style={styles.label}>이름</Text>
+          <Text style={styles.label}>{labelText}</Text>
 
-        <TextInput
-          ref={inputRef}
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-          placeholder=""
-          placeholderTextColor="rgba(255,255,255,0.6)"
-          returnKeyType="next"                 // iOS에서 키보드 “다음” 버튼
-          enablesReturnKeyAutomatically={true} // 내용 없을 때 비활성화
-          keyboardType="default"
-          autoCapitalize="none"
-          onSubmitEditing={handleSubmit}       // 키보드 “다음” 눌렀을 때
-        />
+          <TextInput
+            ref={inputRef}
+            style={styles.input}
+            value={value}
+            onChangeText={(t) => {
+              if (step === 'NAME') setName(t);
+              else setNickname(t);
+            }}
+            placeholder=""
+            placeholderTextColor="rgba(255,255,255,0.6)"
+            returnKeyType="next"
+            enablesReturnKeyAutomatically={true}
+            keyboardType="default"
+            autoCapitalize="none"
+            autoCorrect={false}
+            onSubmitEditing={handleSubmit}
+          />
 
-        <View style={styles.underline} />
+          <View style={styles.underline} />
+        </View>
+
+        <TouchableOpacity
+          style={[styles.nextBar, isNextDisabled && styles.nextBarDisabled]}
+          activeOpacity={isNextDisabled ? 1 : 0.8}
+          disabled={isNextDisabled}
+          onPress={handleSubmit}
+        >
+          <Text style={styles.nextBarText}>다음</Text>
+        </TouchableOpacity>
       </View>
-
-      {/* ⬇⬇ 화면 하단 고정 “다음” 버튼 (키보드 안 떠도 사용 가능) */}
-      <TouchableOpacity
-        style={[styles.nextButton, isNextDisabled && styles.nextButtonDisabled]}
-        activeOpacity={isNextDisabled ? 1 : 0.8}
-        disabled={isNextDisabled}
-        onPress={handleSubmit}
-      >
-        <Text style={styles.nextButtonText}>다음</Text>
-      </TouchableOpacity>
-    </View>
+    </KeyboardAvoidingView>
   );
-};
-
-export default NameInputScreen;
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -96,6 +143,7 @@ const styles = StyleSheet.create({
     backgroundColor: BLUE,
     paddingHorizontal: 24,
     paddingTop: 24,
+    paddingBottom: 56,
   },
 
   backButton: {
@@ -103,13 +151,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   backText: {
-    fontSize: 20,
+    fontSize: 28,
     color: WHITE,
-    fontWeight: '400',
+    fontWeight: '500',
   },
 
   content: {
-    flex: 1,           // 남은 공간 채우고
+    flex: 1,
     marginTop: 24,
   },
 
@@ -140,19 +188,20 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // 하단 “다음” 버튼 (임시/보조용)
-  nextButton: {
-    height: 52,
-    borderRadius: 26,
+  nextBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 56,
     backgroundColor: WHITE,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 80,
   },
-  nextButtonDisabled: {
+  nextBarDisabled: {
     opacity: 0.4,
   },
-  nextButtonText: {
+  nextBarText: {
     fontSize: 16,
     fontWeight: '600',
     color: BLUE,
