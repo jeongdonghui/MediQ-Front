@@ -10,17 +10,15 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../navigation/AppNavigator';
+import type { RootStackParamList, OnsetKey } from '../../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'PainSeverity'>;
-
-type OnsetKey = 'NOW' | 'TODAY' | 'YESTERDAY' | 'DAYS_2_3' | 'WEEK_PLUS' | 'MONTH_PLUS';
 
 export default function PainSeverityScreen({ navigation, route }: Props) {
   const { area, category, location, symptoms, otherText, painScopes } = route.params;
 
-  const [severity, setSeverity] = useState(1); // 0~4
-  const [onset, setOnset] = useState<OnsetKey | null>('NOW');
+  const [severityLevel, setSeverityLevel] = useState(1); // 0~4
+  const [onset, setOnset] = useState<OnsetKey>('NOW');
 
   const faces = useMemo(
     () => [
@@ -45,21 +43,21 @@ export default function PainSeverityScreen({ navigation, route }: Props) {
     []
   );
 
-  const canSubmit = onset !== null;
-
   const goNext = () => {
-    if (!canSubmit) return;
-
-    // ✅ 다음 단계가 아직 없다면 일단 콘솔/서버로 보내는 지점으로 사용
-    // navigation.navigate('NextScreen', {...})
-
-    // 임시: 뒤로가기
-    navigation.goBack();
+    navigation.navigate('AIAnalysis', {
+      area,
+      category,
+      location,
+      symptoms,
+      otherText,
+      painScopes,
+      severityLevel,
+      onset,
+    });
   };
 
   return (
     <SafeAreaView style={styles.safe}>
-      {/* 상단바 */}
       <View style={styles.topBar}>
         <Pressable onPress={() => navigation.goBack()} style={styles.backBtn} hitSlop={10}>
           <Text style={styles.backTxt}>{'‹'}</Text>
@@ -74,14 +72,13 @@ export default function PainSeverityScreen({ navigation, route }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* 강도 카드 */}
         <View style={styles.sevCard}>
           <Text style={styles.h1}>얼마나 아프신가요?</Text>
           <Text style={styles.h2}>통증의 정도를 선택해주세요.</Text>
 
           <View style={styles.faceWrap}>
-            <Text style={styles.faceEmoji}>{faces[severity].emoji}</Text>
-            <Text style={styles.faceLabel}>{faces[severity].label}</Text>
+            <Text style={styles.faceEmoji}>{faces[severityLevel].emoji}</Text>
+            <Text style={styles.faceLabel}>{faces[severityLevel].label}</Text>
           </View>
 
           <View style={styles.sliderWrap}>
@@ -89,8 +86,8 @@ export default function PainSeverityScreen({ navigation, route }: Props) {
               minimumValue={0}
               maximumValue={4}
               step={1}
-              value={severity}
-              onValueChange={setSeverity}
+              value={severityLevel}
+              onValueChange={setSeverityLevel}
               minimumTrackTintColor={BLUE}
               maximumTrackTintColor="#E5E7EB"
               thumbTintColor={BLUE}
@@ -103,7 +100,6 @@ export default function PainSeverityScreen({ navigation, route }: Props) {
           </View>
         </View>
 
-        {/* 발생 시점 */}
         <View style={styles.onsetHeader}>
           <Text style={styles.h3}>언제부터 그러셨나요?</Text>
         </View>
@@ -130,14 +126,9 @@ export default function PainSeverityScreen({ navigation, route }: Props) {
         <View style={{ height: 24 }} />
       </ScrollView>
 
-      {/* 하단 버튼 */}
       <View style={styles.bottom}>
-        <Pressable
-          onPress={goNext}
-          disabled={!canSubmit}
-          style={[styles.cta, !canSubmit && styles.ctaDisabled]}
-        >
-          <Text style={[styles.ctaTxt, !canSubmit && styles.ctaTxtDisabled]}>AI 분석 시작</Text>
+        <Pressable onPress={goNext} style={styles.cta}>
+          <Text style={styles.ctaTxt}>AI 분석 시작</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -234,7 +225,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ctaDisabled: { backgroundColor: '#CBD5E1' },
   ctaTxt: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
-  ctaTxtDisabled: { color: '#FFFFFF' },
 });

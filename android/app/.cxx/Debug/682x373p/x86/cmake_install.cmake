@@ -47,6 +47,7 @@ if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   include("/Users/semmuni/Desktop/MediQ-Front-main/android/app/.cxx/Debug/682x373p/x86/RNCSlider_autolinked_build/cmake_install.cmake")
   include("/Users/semmuni/Desktop/MediQ-Front-main/android/app/.cxx/Debug/682x373p/x86/safeareacontext_autolinked_build/cmake_install.cmake")
   include("/Users/semmuni/Desktop/MediQ-Front-main/android/app/.cxx/Debug/682x373p/x86/rnscreens_autolinked_build/cmake_install.cmake")
+  include("/Users/semmuni/Desktop/MediQ-Front-main/android/app/.cxx/Debug/682x373p/x86/RNCWebViewSpec_autolinked_build/cmake_install.cmake")
 
 endif()
 

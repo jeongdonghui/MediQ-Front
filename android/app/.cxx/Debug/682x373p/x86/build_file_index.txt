@@ -1,3 +1,5 @@
+/Users/semmuni/Desktop/MediQ-Front-main/node_modules/@react-native-community/slider/android/src/main/jni/CMakeLists.txt
 /Users/semmuni/Desktop/MediQ-Front-main/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt
 /Users/semmuni/Desktop/MediQ-Front-main/node_modules/react-native-screens/android/src/main/jni/CMakeLists.txt
+/Users/semmuni/Desktop/MediQ-Front-main/node_modules/react-native-webview/android/build/generated/source/codegen/jni/CMakeLists.txt
 /Users/semmuni/Desktop/MediQ-Front-main/node_modules/react-native/ReactAndroid/cmake-utils/default-app-setup/CMakeLists.txt
