@@ -69,7 +69,7 @@ export default function ResultScreen({ navigation, route }: Props) {
       </ScrollView>
 
       <TouchableOpacity style={styles.bottomBtn} onPress={goPharmacy}>
-        <Text style={styles.bottomBtnText}>내 주변 약국 찾기</Text>
+        <Text style={styles.bottomBtnText}>내 주변 병원 찾기</Text>
       </TouchableOpacity>
     </View>
   );

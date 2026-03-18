@@ -31,7 +31,7 @@ export default function IntroScreen({ navigation }: Props) {
 
       <View style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.title}>안녕하세요 저는 MediQ 입니다.</Text>
+          <Text style={styles.title}>안녕하세요 MediQ 입니다.</Text>
           <Text style={styles.desc}>
             어디가 아프신지 저에게 알려주시면{'\n'}
             제가 당신의 증상을 분석해드릴게요!
