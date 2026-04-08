@@ -4,9 +4,9 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import SplashScreen from '../screens/home/SplashScreen';
 import HomeScreen from '../screens/home/HomeScreen';
-import TutorialScreen from '../screens/home/TutorialScreen';
+import TutorialScreen from '../screens/home/TutorialScreen.tsx';
 
-import HamburgerMenuScreen from '../screens/menu/HamburgerMenuScreen';
+import HamburgerMenuScreen from '../screens/menu/HamburgerMenuScreen.tsx';
 import MenuScreen from '../screens/menu/MenuScreen';
 import PaymentMethodScreen from '../screens/menu/PaymentMethodScreen';
 import PaymentCardAddScreen from '../screens/menu/PaymentCardAddScreen';
@@ -22,6 +22,13 @@ import TermsLocationScreen from '../screens/menu/TermsLocationScreen';
 import TermsPrivacyScreen from '../screens/menu/TermsPrivacyScreen';
 import TermsSymptomScreen from '../screens/menu/TermsSymptomScreen';
 import TermsWithdrawScreen from '../screens/menu/TermsWithdrawScreen';
+
+import NotificationScreen from '../screens/notifications/NotificationScreen';
+
+import CommunityHomeScreen from '../screens/community/CommunityHomeScreen';
+import CommunityCategoryScreen from '../screens/community/CommunityCategoryScreen';
+import CommunityPostDetailScreen from '../screens/community/CommunityPostDetailScreen';
+import CommunityWriteScreen from '../screens/community/CommunityWriteScreen';
 
 import IntroScreen from '../screens/diagnosis/IntroScreen';
 import BodySelectScreen from '../screens/diagnosis/BodySelectScreen';
@@ -68,10 +75,57 @@ export type SummaryCard = {
   urgency: 'LOW' | 'MEDIUM' | 'HIGH';
 };
 
+export type VoteInfo = {
+  title: string;
+  options: string[];
+  multi: boolean;
+  anonymous: boolean;
+};
+
+export type CommunityComment = {
+  id: string;
+  author: string;
+  content: string;
+  time: string;
+};
+
+export type CommunityPost = {
+  id: string;
+  boardLabel: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  author: string;
+  time: string;
+  views: number;
+  likes: number;
+  comments: number;
+  images?: string[];
+  vote?: VoteInfo | null;
+  commentList?: CommunityComment[];
+};
+
 export type RootStackParamList = {
   Splash: undefined;
   Home: undefined;
   Tutorial: undefined;
+  Notification: undefined;
+
+  CommunityHome:
+    | {
+        selectedBoard?: string;
+      }
+    | undefined;
+
+  CommunityCategory: undefined;
+
+  CommunityPostDetail: {
+    post: CommunityPost;
+  };
+
+  CommunityWrite: {
+    board?: string;
+  };
 
   HamburgerMenu: {
     loginType: 'mediq' | 'kakao';
@@ -171,6 +225,12 @@ export default function AppNavigator() {
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Tutorial" component={TutorialScreen} />
+        <Stack.Screen name="Notification" component={NotificationScreen} />
+
+        <Stack.Screen name="CommunityCategory" component={CommunityCategoryScreen} />
+        <Stack.Screen name="CommunityHome" component={CommunityHomeScreen} />
+        <Stack.Screen name="CommunityPostDetail" component={CommunityPostDetailScreen} />
+        <Stack.Screen name="CommunityWrite" component={CommunityWriteScreen} />
 
         <Stack.Screen name="HamburgerMenu" component={HamburgerMenuScreen} />
         <Stack.Screen name="Menu" component={MenuScreen} />
@@ -181,6 +241,7 @@ export default function AppNavigator() {
         <Stack.Screen name="CommunityPolicy" component={CommunityPolicyScreen} />
         <Stack.Screen name="RestrictionHistory" component={RestrictionHistoryScreen} />
         <Stack.Screen name="InquiryHistory" component={InquiryHistoryScreen} />
+
         <Stack.Screen name="NoticeTerms" component={TermsNoticeScreen} />
         <Stack.Screen name="ServiceTerms" component={TermsServiceScreen} />
         <Stack.Screen name="LocationTerms" component={TermsLocationScreen} />

@@ -120,7 +120,10 @@ export default function HamburgerMenuScreen({ navigation, route }: Props) {
         <View style={styles.blockCard}>
           <MenuRow label="리포트" />
           <MenuRow label="캘린더" />
-          <MenuRow label="커뮤니티" />
+          <MenuRow
+  label="커뮤니티"
+  onPress={() => navigation.navigate('CommunityHome')}
+/>
           <MenuRow label="지도" />
           <MenuRow
             label="위젯 설정"
