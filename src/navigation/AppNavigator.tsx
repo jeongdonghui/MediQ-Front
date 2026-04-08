@@ -16,6 +16,9 @@ import IdInputScreen from '../screens/signup/IdInputScreen';
 import PasswordInputScreen from '../screens/signup/PasswordInputScreen';
 import PhoneNumberScreen from '../screens/signup/PhoneNumberScreen';
 import CheckInfoScreen from '../screens/signup/CheckInfoScreen';
+import SubscriptionServiceScreen from '../screens/subscription/SubscriptionServiceScreen';
+import GooglePaymentScreen from '../screens/subscription/GooglePaymentScreen';
+import KakaoMapScreen from '../screens/map/KakaoMapScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,7 +26,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="Login"
+        initialRouteName="SubscriptionService"
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="Login" component={LoginScreen} />
@@ -46,6 +49,15 @@ export default function AppNavigator() {
         <Stack.Screen name="PasswordInput" component={PasswordInputScreen} />
         <Stack.Screen name="PhoneNumber" component={PhoneNumberScreen} />
         <Stack.Screen name="CheckInfo" component={CheckInfoScreen} />
+        <Stack.Screen name="SubscriptionService" component={SubscriptionServiceScreen} />
+        <Stack.Screen 
+        name="GooglePayment" 
+        component={GooglePaymentScreen}
+        options={{
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}  />
+        <Stack.Screen name="KakaoMap" component={KakaoMapScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
