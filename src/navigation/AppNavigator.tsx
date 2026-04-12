@@ -26,7 +26,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="SubscriptionService"
+        initialRouteName="KakaoMap"
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="Login" component={LoginScreen} />
@@ -50,13 +50,13 @@ export default function AppNavigator() {
         <Stack.Screen name="PhoneNumber" component={PhoneNumberScreen} />
         <Stack.Screen name="CheckInfo" component={CheckInfoScreen} />
         <Stack.Screen name="SubscriptionService" component={SubscriptionServiceScreen} />
-        <Stack.Screen 
-        name="GooglePayment" 
-        component={GooglePaymentScreen}
-        options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
-        }}  />
+        <Stack.Screen
+          name="GooglePayment"
+          component={GooglePaymentScreen}
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }} />
         <Stack.Screen name="KakaoMap" component={KakaoMapScreen} />
       </Stack.Navigator>
     </NavigationContainer>
