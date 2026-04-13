@@ -7,7 +7,11 @@ import {
   TouchableOpacity,
   Modal,
   Platform,
+  Alert,
 } from 'react-native';
+
+import { signup } from '../../api/auth';
+import { saveTokens } from '../../utils/storage';
 
 const BLUE = '#3FA2FF';
 const WHITE = '#FFFFFF';
@@ -62,6 +66,7 @@ export default function CheckInfoScreen({ navigation, route }: Props) {
 
   const [modalVisible, setModalVisible] = useState(false);
   const openLockRef = useRef(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [allAgree, setAllAgree] = useState(false);
   const [termChecks, setTermChecks] = useState<boolean[]>(
@@ -91,31 +96,45 @@ export default function CheckInfoScreen({ navigation, route }: Props) {
   };
 
   const isTermsNextDisabled = useMemo(
-    () => !termChecks.every(v => v),
-    [termChecks],
+    () => !termChecks.every(v => v) || isLoading,
+    [termChecks, isLoading],
   );
 
-  // ✅ 가입 플로우 종료: reset (중복 화면/뒤로 꼬임 방지)
-  const handleTermsNext = () => {
+  // ✅ 가입 API 호출
+  const handleTermsNext = async () => {
     if (isTermsNextDisabled) return;
-    setModalVisible(false);
 
-    navigation?.reset?.({
-      index: 0,
-      routes: [
+    try {
+      setIsLoading(true);
+      const reqData = {
+        email: id,
+        password: password,
+        name: name,
+        nickname: nickname,
+        phoneNumber: phone,
+        rrn: `${birthFront6}${birthBack1}`,
+        serviceTerms: termChecks[0],
+        privacyPolicy: termChecks[1],
+        marketing: termChecks[4], // 배열의 인덱스 확인
+      };
+
+      const res = await signup(reqData);
+
+      // 회원가입 완료 후 확인 시 바로 Login 화면으로 이동 (사용자 요청 사항)
+      await saveTokens(res.accessToken || '', res.refreshToken || '');
+      setModalVisible(false);
+      Alert.alert('가입 완료', '회원가입이 완료되었습니다. 새롭게 로그인 해주세요.', [
         {
-          name: 'Splash',
-          params: {
-            id,
-            password,
-            name,
-            nickname,
-            phone,
-            birthFront6,
-          },
-        },
-      ],
-    });
+          text: '확인',
+          onPress: () => navigation?.reset({ index: 0, routes: [{ name: 'Login' }] })
+        }
+      ]);
+    } catch (error: any) {
+      console.error('Signup error: ', error);
+      Alert.alert('가입 실패', '회원가입 처리 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

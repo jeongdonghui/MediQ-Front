@@ -6,7 +6,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  Alert,
 } from 'react-native';
+
+import { login } from '../../api/auth';
+import { saveTokens } from '../../utils/storage';
 
 const BLUE = '#3FA2FF';
 const WHITE = '#FFFFFF';
@@ -23,8 +27,26 @@ const OtherLoginScreen: React.FC<Props> = ({ navigation }) => {
     navigation?.goBack?.();
   };
 
-  const handleLogin = () => {
-    console.log('MediQ 자체 로그인', { userId, password });
+  const handleLogin = async () => {
+    if (!userId.trim() || !password.trim()) {
+      Alert.alert('알림', '아이디와 비밀번호를 모두 입력해주세요.');
+      return;
+    }
+
+    try {
+      const res = await login({ email: userId, password });
+      
+      // 토큰 저장 (응답에 accessToken, refreshToken이 있다고 가정)
+      if (res.accessToken) {
+        await saveTokens(res.accessToken, res.refreshToken);
+      }
+      
+      Alert.alert('성공', '로그인 되었습니다.');
+      navigation?.reset({ index: 0, routes: [{ name: 'Home' }] });
+    } catch (error: any) {
+      console.log('Login error:', error);
+      Alert.alert('로그인 실패', '아이디 혹은 비밀번호를 확인해주세요.');
+    }
   };
 
   const handleFindId = () => {

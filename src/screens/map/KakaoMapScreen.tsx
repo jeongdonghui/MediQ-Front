@@ -118,7 +118,7 @@ export default function KakaoMapScreen() {
             if (json.documents && json.documents.length > 0) {
               hosp.images = json.documents.map((d: any) => d.image_url);
             }
-          } catch (_e) { }
+          } catch { }
           return hosp;
         });
 
@@ -139,7 +139,7 @@ export default function KakaoMapScreen() {
         // Prevent showing research btn if we just clicked a marker which moved the map slightly
         setShowReSearchBtn(true);
       }
-    } catch (_e) {
+    } catch {
       console.log('WebView Message Parse Error');
     }
   };

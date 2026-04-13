@@ -5,7 +5,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   FlatList,
 } from 'react-native';
 
@@ -27,7 +26,6 @@ const BG = '#F4F7FF';
 const BLUE = '#2F80ED';
 const TEXT_DARK = '#222222';
 const TEXT_GRAY = '#777777';
-const CARD_BG = '#FFFFFF';
 const DIVIDER = '#E6EBF5';
 
 export default function NotificationScreen({ navigation }: Props) {

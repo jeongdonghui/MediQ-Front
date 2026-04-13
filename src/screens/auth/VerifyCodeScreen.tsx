@@ -19,7 +19,7 @@ type Props = {
 const VERIFY_DURATION = 120; // 2분
 
 const VerifyCodeScreen: React.FC<Props> = ({ navigation, route }) => {
-  const phone = route?.params?.phone ?? ''; // 010... 넘겨받는다고 가정
+  const email = route?.params?.email ?? ''; // 이메일 주소 넘겨받는다고 가정
 
   const [code, setCode] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(VERIFY_DURATION);
@@ -80,8 +80,15 @@ const VerifyCodeScreen: React.FC<Props> = ({ navigation, route }) => {
     if (!isConfirmEnabled) return;
     console.log('인증번호 확인:', code);
 
-    // TODO: 실제 인증 성공 후 다음 화면으로 이동
-    navigation?.navigate('Splash');
+    navigation?.navigate('CheckInfo', {
+      id: route?.params?.id,
+      password: route?.params?.password,
+      name: route?.params?.name,
+      nickname: route?.params?.nickname,
+      birthFront6: route?.params?.birthFront6,
+      birthBack1: route?.params?.birthBack1,
+      phone: route?.params?.phone,
+    });
   };
 
   return (
@@ -99,7 +106,7 @@ const VerifyCodeScreen: React.FC<Props> = ({ navigation, route }) => {
 
         {/* 설명 텍스트 */}
         <Text style={styles.description}>
-          {phone || '01012345678'}번호에 인증번호를 보냈어요
+          {email || 'example@mediq.com'} 이메일로 인증번호를 보냈어요
         </Text>
 
         {/* 인증번호 입력 레이블 + 타이머 */}
