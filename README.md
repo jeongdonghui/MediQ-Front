@@ -95,3 +95,23 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+
+---
+
+# 통합 브랜치 안내 (Integration Branch Info)
+
+## feature/integration-pain-flow
+이 브랜치는 **main** 브랜치와 팀원의 **feature/pain-flow** 브랜치를 통합하여 테스트하기 위해 생성되었습니다.
+
+### 주요 통합 내용
+- **대상 브랜치:** `feature/pain-flow` (최근 API 연동 및 화면 수정 내역 포함)
+- **통합 방식:** OS 간 호환성 및 빌드 유물 충돌을 방지하기 위해 `src` 폴더 및 핵심 설정 파일(`package.json`, `tsconfig.json`, `index.js` 등)을 선택적으로 병합함.
+- **포함 사항:**
+  - 백엔드 API 연동 로직
+  - 통증 플로우 관련 화면 및 컴포네트 수정 사항
+  - 프로젝트 환경 설정 업데이트
+
+### 참고 사항
+- 윈도우 환경에서의 경로 이슈로 인해 안드로이드/iOS 네이티브 빌드 유물(`.cxx`, `build` 등) 중 일부는 의도적으로 제외되었습니다.
+- 본인의 로컬 작업 내역은 현재 `git stash`에 보관되어 있으며, 필요 시 이 브랜치 위에서 `git stash pop`을 통해 합칠 수 있습니다.
+
