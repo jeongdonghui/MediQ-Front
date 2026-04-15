@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated, Easing, Image } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { createReport } from '../../api/reports';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AIAnalysis'>;
 
@@ -54,6 +55,19 @@ export default function AIAnalysisScreen({ navigation, route }: Props) {
   });
 
   useEffect(() => {
+    // ✅ 서버에 문진 기록 전송 API 호출 (비동기로 백그라운드 처리)
+    createReport({
+      mainSymptom: `[${location}] ${symptoms?.join(', ') || '관련 증상'}`,
+      painIntensity: severityLevel || 0,
+      symptomArea: area || 'LOCALIZED',
+      symptomDuration: onset || 'TODAY',
+      additionalSymptom: painScopes?.join(', ') || ''
+    }).then(res => {
+      console.log('AI Report created successfully:', res);
+    }).catch(err => {
+      console.error('Failed to create AI Report:', err);
+    });
+
     let mounted = true;
 
     const id = setInterval(() => {

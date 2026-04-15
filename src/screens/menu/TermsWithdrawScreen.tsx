@@ -7,9 +7,12 @@ import {
   StyleSheet,
   TextInput,
   Modal,
+  Alert,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { withdrawAccount } from '../../api/users';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Withdraw'>;
 
@@ -84,9 +87,22 @@ export default function TermsWithdrawScreen({ navigation }: Props) {
 
               <TouchableOpacity
                 style={styles.confirmBtn}
-                onPress={() => {
+                onPress={async () => {
                   setShowConfirm(false);
-                  navigation.goBack();
+                  try {
+                    await withdrawAccount();
+                    await AsyncStorage.removeItem('accessToken');
+                    await AsyncStorage.removeItem('refreshToken');
+                  } catch (e) {
+                    console.warn('API 실패', e);
+                    await AsyncStorage.removeItem('accessToken');
+                  }
+                  Alert.alert('탈퇴 환료', '그동안 서비스를 이용해 주셔서 감사합니다.');
+                  if (navigation.reset) {
+                    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+                  } else {
+                    navigation.goBack();
+                  }
                 }}
               >
                 <Text style={styles.withdrawText}>탈퇴</Text>

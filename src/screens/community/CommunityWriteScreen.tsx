@@ -14,6 +14,8 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { BOARD_GROUPS, addPost, type VoteInfo } from './communityStore';
+import { createCommunityPost } from '../../api/community';
+
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CommunityWrite'>;
 
@@ -92,7 +94,7 @@ export default function CommunityWriteScreen({ navigation, route }: Props) {
     voteType,
   ]);
 
-  const submitPost = () => {
+  const submitPost = async () => {
     if (!title.trim()) {
       Alert.alert('안내', '제목을 입력해주세요.');
       return;
@@ -103,6 +105,22 @@ export default function CommunityWriteScreen({ navigation, route }: Props) {
       return;
     }
 
+    // 서버 전송용 FormData 구성
+    const formData = new FormData();
+    formData.append('postCreateRequest', JSON.stringify({
+      title: title.trim(),
+      content: content.trim(),
+      boardId: 1, // 백엔드 게시판 ID 맵핑 필요 (우선 1로 임시 지정)
+    }));
+    // TODO: 이미지 첨부 처리 추가
+
+    try {
+      await createCommunityPost(formData);
+    } catch (e) {
+      console.warn('Create post API failed, storing to local mock as fallback');
+    }
+
+    // fallback/optimistic 업데이트
     addPost({
       category: selectedBoard,
       title: title.trim(),

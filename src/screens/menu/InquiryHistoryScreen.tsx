@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { getMyInquiries, createInquiry } from '../../api/inquiries';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'InquiryHistory'>;
 
@@ -32,8 +33,9 @@ export default function InquiryHistoryScreen({ navigation }: Props) {
   const [content, setContent] = useState('');
   const [photos, setPhotos] = useState<number[]>([]);
   const [selectedInquiry, setSelectedInquiry] = useState<InquiryItem | null>(null);
+  const [inquiries, setInquiries] = useState<InquiryItem[]>([]);
 
-  const inquiries: InquiryItem[] = [
+  const mockInquiries: InquiryItem[] = [
     {
       id: '1',
       status: '답변 완료',
@@ -55,6 +57,20 @@ export default function InquiryHistoryScreen({ navigation }: Props) {
       answerDate: '2026.01.21 13:05',
     },
   ];
+
+  // API 호출 후 실패 시 더미 데이터로 폴백 연동
+  React.useEffect(() => {
+    if (mode === 'list') {
+      getMyInquiries()
+        .then(res => {
+          setInquiries(res.length > 0 ? res : mockInquiries);
+        })
+        .catch(err => {
+          console.warn('Failed to fetch inquiries, fallback to mock data.', err);
+          setInquiries(mockInquiries);
+        });
+    }
+  }, [mode]);
 
   const handleBack = () => {
     if (mode === 'write') {
@@ -84,8 +100,21 @@ export default function InquiryHistoryScreen({ navigation }: Props) {
     setPhotos((prev) => [...prev, Date.now()]);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!content.trim()) return;
+
+    const formData = new FormData();
+    const catEnum = selectedCategory === '결제' ? 'PAYMENT' : selectedCategory === '커뮤니티' ? 'COMMUNITY' : selectedCategory === '기타' ? 'ETC' : 'DIAGNOSIS';
+    formData.append('category', catEnum);
+    formData.append('content', content);
+    // TODO: 실제로 photo/file 데이터 append 해야함
+
+    try {
+      await createInquiry(formData);
+    } catch (error) {
+      console.warn('Create Inquiry Failed', error);
+    }
+
     setContent('');
     setPhotos([]);
     setSelectedCategory('진단');

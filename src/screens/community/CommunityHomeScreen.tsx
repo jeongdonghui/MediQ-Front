@@ -13,6 +13,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { getPosts, BOARD_GROUPS, type AppCommunityPost } from './communityStore';
+import { getCommunityPosts } from '../../api/community';
+
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CommunityHome'>;
 
@@ -23,8 +25,19 @@ export default function CommunityHomeScreen({ navigation, route }: Props) {
   const selectedBoard = route.params?.selectedBoard ?? '자유게시판';
   const [posts, setPosts] = useState<AppCommunityPost[]>([]);
 
-  const loadPosts = useCallback(() => {
-    const allPosts = getPosts();
+  const loadPosts = useCallback(async () => {
+    let allPosts: AppCommunityPost[] = [];
+    try {
+      const data = await getCommunityPosts();
+      if (data && data.length > 0) {
+        allPosts = data as unknown as AppCommunityPost[];
+      } else {
+        allPosts = getPosts();
+      }
+    } catch (error) {
+      console.warn('Community API fetch failed, fallback to mock data');
+      allPosts = getPosts();
+    }
 
     const matchedGroup = BOARD_GROUPS.find((group) => group.title === selectedBoard);
 

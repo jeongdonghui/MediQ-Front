@@ -6,7 +6,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { login } from '../../api/auth';
+
 
 const BLUE = '#3FA2FF';
 const WHITE = '#FFFFFF';
@@ -23,8 +27,22 @@ const OtherLoginScreen: React.FC<Props> = ({ navigation }) => {
     navigation?.goBack?.();
   };
 
-  const handleLogin = () => {
-    console.log('MediQ 자체 로그인', { userId, password });
+  const handleLogin = async () => {
+    try {
+      const res = await login({ email: userId, password });
+      if (res?.accessToken) {
+        await AsyncStorage.setItem('accessToken', res.accessToken);
+      }
+      if (res?.refreshToken) {
+        await AsyncStorage.setItem('refreshToken', res.refreshToken);
+      }
+      Alert.alert('로그인 성공', '환영합니다!');
+      navigation?.reset({ index: 0, routes: [{ name: 'Home' }] });
+    } catch (error) {
+      console.warn('API 로그인 실패, 더미 로그인 진행', error);
+      Alert.alert('로그인 성공 (Mock)', '환영합니다!');
+      navigation?.reset({ index: 0, routes: [{ name: 'Home' }] });
+    }
   };
 
   const handleFindId = () => {

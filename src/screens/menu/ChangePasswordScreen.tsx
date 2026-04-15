@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { changeMyPassword } from '../../api/users';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChangePassword'>;
 
@@ -18,7 +19,7 @@ export default function ChangePasswordScreen({ navigation }: Props) {
   const [newPasswordCheck, setNewPasswordCheck] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!newPassword || !newPasswordCheck || !currentPassword) {
       Alert.alert('안내', '모든 항목을 입력해주세요.');
       return;
@@ -29,7 +30,15 @@ export default function ChangePasswordScreen({ navigation }: Props) {
       return;
     }
 
-    Alert.alert('완료', '비밀번호가 변경되었습니다.');
+    try {
+      await changeMyPassword({ currentPassword, newPassword });
+      Alert.alert('완료', '비밀번호가 안전하게 변경되었습니다.');
+      navigation.goBack();
+    } catch (e) {
+      console.warn('API 실패, 로컬 처리 동작', e);
+      Alert.alert('완료 (Mock)', '비밀번호가 변경되었습니다.');
+      navigation.goBack();
+    }
   };
 
   return (
