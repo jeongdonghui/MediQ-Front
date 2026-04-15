@@ -106,12 +106,7 @@ export default function CheckInfoScreen({ navigation, route }: Props) {
         {
           name: 'Splash',
           params: {
-            id,
-            password,
-            name,
-            nickname,
-            phone,
-            birthFront6,
+            next: 'Login',
           },
         },
       ],

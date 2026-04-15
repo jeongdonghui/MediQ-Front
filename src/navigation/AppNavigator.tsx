@@ -2,11 +2,23 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import SplashScreen from '../screens/home/SplashScreen';
 import HomeScreen from '../screens/home/HomeScreen';
-import TutorialScreen from '../screens/home/TutorialScreen.tsx';
+import TutorialScreen from '../screens/home/TutorialScreen';
 
-import HamburgerMenuScreen from '../screens/menu/HamburgerMenuScreen.tsx';
+import SplashScreen from '../screens/auth/SplashScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
+import OtherLoginScreen from '../screens/auth/OtherLoginScreen';
+import VerifyCodeScreen from '../screens/auth/VerifyCodeScreen';
+
+import IdInputScreen from '../screens/signup/IdInputScreen';
+import PasswordInputScreen from '../screens/signup/PasswordInputScreen';
+import NameInputScreen from '../screens/signup/NameInputScreen';
+import BirthdateScreen from '../screens/signup/BirthdateScreen';
+import PhoneNumberScreen from '../screens/signup/PhoneNumberScreen';
+import CheckInfoScreen from '../screens/signup/CheckInfoScreen';
+import ConfirmInfoScreen from '../screens/signup/ConfirmInfoScreen';
+
+import HamburgerMenuScreen from '../screens/menu/HamburgerMenuScreen';
 import MenuScreen from '../screens/menu/MenuScreen';
 import PaymentMethodScreen from '../screens/menu/PaymentMethodScreen';
 import PaymentCardAddScreen from '../screens/menu/PaymentCardAddScreen';
@@ -106,10 +118,22 @@ export type CommunityPost = {
 };
 
 export type RootStackParamList = {
-  Splash: undefined;
+  Splash: { next?: keyof RootStackParamList; payload?: any } | undefined;
   Home: undefined;
   Tutorial: undefined;
   Notification: undefined;
+
+  Login: undefined;
+  OtherLogin: undefined;
+  VerifyCode: { phone?: string };
+
+  IdInput: undefined;
+  PasswordInput: { id: string };
+  NameInput: { id: string; password?: string };
+  Birthdate: { id: string; password?: string; name: string; nickname: string };
+  PhoneNumber: { id: string; password?: string; name: string; nickname: string; birthdate: string; gender: string };
+  CheckInfo: { id: string; password?: string; name: string; nickname: string; birthdate: string; gender: string; phone: string };
+  ConfirmInfo: undefined;
 
   CommunityHome:
     | {
@@ -223,6 +247,18 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={SplashScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="OtherLogin" component={OtherLoginScreen} />
+        <Stack.Screen name="VerifyCode" component={VerifyCodeScreen} />
+
+        <Stack.Screen name="IdInput" component={IdInputScreen} />
+        <Stack.Screen name="PasswordInput" component={PasswordInputScreen} />
+        <Stack.Screen name="NameInput" component={NameInputScreen} />
+        <Stack.Screen name="Birthdate" component={BirthdateScreen} />
+        <Stack.Screen name="PhoneNumber" component={PhoneNumberScreen} />
+        <Stack.Screen name="CheckInfo" component={CheckInfoScreen} />
+        <Stack.Screen name="ConfirmInfo" component={ConfirmInfoScreen} />
+
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Tutorial" component={TutorialScreen} />
         <Stack.Screen name="Notification" component={NotificationScreen} />

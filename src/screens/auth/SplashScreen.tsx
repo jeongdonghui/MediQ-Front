@@ -2,6 +2,8 @@
 import React, { useEffect } from 'react';
 import { View, Image, StyleSheet } from 'react-native';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const WHITE = '#FFFFFF';
 
 type Props = {
@@ -11,20 +13,36 @@ type Props = {
 
 const SplashScreen: React.FC<Props> = ({ navigation, route }) => {
   useEffect(() => {
-    const timer = setTimeout(() => {
-      // 다음으로 갈 화면 이름 (없으면 Login으로)
-      const nextScreen = route?.params?.next ?? 'Home';
-
-      // 필요하면 같이 넘긴 데이터도 payload에 넣어서 사용 가능
+    const initApp = async () => {
+      // 1. 목적지 결정
+      let nextScreen = route?.params?.next;
       const payload = route?.params?.payload ?? undefined;
 
-      navigation?.reset({
-        index: 0,
-        routes: [{ name: nextScreen, params: payload }],
-      });
-    }, 1500); // 1.5초 후 이동
+      if (!nextScreen) {
+        // 앱 초기 구동 시 토큰 체크
+        try {
+          const token = await AsyncStorage.getItem('accessToken');
+          nextScreen = token ? 'Home' : 'Login';
+        } catch (e) {
+          nextScreen = 'Login';
+        }
+      }
 
-    return () => clearTimeout(timer);
+      // 2. 1.5초 대기 후 이동
+      const timer = setTimeout(() => {
+        navigation?.reset({
+          index: 0,
+          routes: [{ name: nextScreen, params: payload }],
+        });
+      }, 1500);
+
+      return timer;
+    };
+
+    let t: any;
+    initApp().then(timer => { t = timer; });
+
+    return () => { if (t) clearTimeout(t); };
   }, [navigation, route]);
 
   return (

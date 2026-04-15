@@ -37,11 +37,11 @@ const OtherLoginScreen: React.FC<Props> = ({ navigation }) => {
         await AsyncStorage.setItem('refreshToken', res.refreshToken);
       }
       Alert.alert('로그인 성공', '환영합니다!');
-      navigation?.reset({ index: 0, routes: [{ name: 'Home' }] });
+      navigation?.navigate('Splash', { next: 'Home' });
     } catch (error) {
       console.warn('API 로그인 실패, 더미 로그인 진행', error);
       Alert.alert('로그인 성공 (Mock)', '환영합니다!');
-      navigation?.reset({ index: 0, routes: [{ name: 'Home' }] });
+      navigation?.navigate('Splash', { next: 'Home' });
     }
   };
 
