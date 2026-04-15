@@ -6,12 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Alert,
 } from 'react-native';
-
-import { login as kakaoSdkLogin } from '@react-native-seoul/kakao-login';
-import { loginWithKakao } from '../../api/auth';
-import { saveTokens } from '../../utils/storage';
 
 type Props = {
   navigation?: any;
@@ -21,30 +16,8 @@ const BLUE = '#3FA2FF';
 const WHITE = '#FFFFFF';
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
-  const handleKakaoLogin = async () => {
-    try {
-      // 1. 카카오 공식 SDK 띄워서 카카오 앱을 통한 로그인 (또는 웹뷰)
-      const token = await kakaoSdkLogin();
-      
-      // 2. 받은 카카오 토큰을 우리 백엔드로 전달
-      const res = await loginWithKakao(token.accessToken);
-      
-      // 3. 백엔드에서 내려준 JWT 저장 후 홈으로 이동
-      if (res.accessToken) {
-        await saveTokens(res.accessToken, res.refreshToken);
-        Alert.alert('로그인 성공', '카카오 로그인 되었습니다.');
-        navigation?.reset({ index: 0, routes: [{ name: 'Home' }] });
-      } else {
-        Alert.alert('로그인 성공', '서버 응답에 토큰이 없습니다.');
-      }
-    } catch (err: any) {
-      if (err?.code === 'E_CANCELLED_OPERATION') {
-        console.log('사용자가 로그인을 취소함');
-      } else {
-        console.error('Kakao login error: ', err);
-        Alert.alert('로그인 실패', '카카오 로그인 중 오류가 발생했습니다.');
-      }
-    }
+  const handleKakaoLogin = () => {
+    console.log('카카오 로그인');
   };
 
   const handleMediqLogin = () => {

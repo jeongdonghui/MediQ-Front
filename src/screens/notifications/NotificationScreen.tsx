@@ -12,14 +12,15 @@ type Props = {
   navigation?: any;
 };
 
-type TabKey = 'ALL' | 'AIBOT' | 'COMMUNITY';
+type TabKey = 'ALL' | 'COMMUNITY' | 'KEYWORD';
 
 type NotiItem = {
   id: string;
-  type: 'AIBOT' | 'COMMUNITY';
+  type: 'COMMUNITY' | 'KEYWORD';
   title: string;
   body: string;
   time: string;
+  keyword?: string;
 };
 
 const BG = '#F4F7FF';
@@ -27,47 +28,56 @@ const BLUE = '#2F80ED';
 const TEXT_DARK = '#222222';
 const TEXT_GRAY = '#777777';
 const DIVIDER = '#E6EBF5';
+const CHIP_BG = '#EAF2FF';
 
 export default function NotificationScreen({ navigation }: Props) {
   const [activeTab, setActiveTab] = useState<TabKey>('ALL');
 
-  // 더미 데이터 (나중에 API로 교체)
+  // 관심 키워드 더미 데이터
+  // 나중에 내 계정의 관심 키워드 API 데이터로 교체
+  const keywordList = useMemo(() => ['두통', '정형외과', '야간진료'], []);
+
+  // 더미 알림 데이터
+  // 나중에 API로 교체
   const data: NotiItem[] = useMemo(
     () => [
       {
         id: '1',
-        type: 'AIBOT',
-        title: 'AI봇',
-        body: 'AI봇이 회원님께 처방을 기다리고있어요.\n증상분석을 진행하려면 앱에서 확인해보세요.',
+        type: 'COMMUNITY',
+        title: '커뮤니티',
+        body: '내 글에 새로운 댓글이 달렸어요.\n지금 바로 확인해보세요.',
         time: '1일전',
       },
       {
         id: '2',
-        type: 'COMMUNITY',
-        title: '커뮤니티',
-        body: '새로운 댓글이 달렸어요.\n내 글에 어떤 이야기가 달렸을까요?',
-        time: '3일전',
+        type: 'KEYWORD',
+        title: '키워드 알림',
+        body: '설정한 키워드 "두통" 관련 새 글이 올라왔어요.',
+        time: '2일전',
+        keyword: '두통',
       },
       {
         id: '3',
-        type: 'AIBOT',
-        title: 'AI봇',
-        body: 'AI봇이 회원님께 처방을 기다리고있어요.\n증상분석을 진행하려면 앱에서 확인해보세요.',
-        time: '5일전',
+        type: 'COMMUNITY',
+        title: '커뮤니티',
+        body: '내가 작성한 글에 공감이 추가되었어요.',
+        time: '3일전',
       },
       {
         id: '4',
-        type: 'COMMUNITY',
-        title: '커뮤니티',
-        body: '새로운 댓글이 달렸어요.\n내 글에 어떤 이야기가 달렸을까요?',
-        time: '6일전',
+        type: 'KEYWORD',
+        title: '키워드 알림',
+        body: '설정한 키워드 "정형외과" 관련 추천 글이 올라왔어요.',
+        time: '5일전',
+        keyword: '정형외과',
       },
       {
         id: '5',
-        type: 'AIBOT',
-        title: 'AI봇',
-        body: 'AI봇이 회원님께 처방을 기다리고있어요.\n증상분석을 진행하려면 앱에서 확인해보세요.',
-        time: '13일전',
+        type: 'KEYWORD',
+        title: '키워드 알림',
+        body: '설정한 키워드 "야간진료" 관련 게시글이 등록되었어요.',
+        time: '6일전',
+        keyword: '야간진료',
       },
     ],
     []
@@ -75,25 +85,66 @@ export default function NotificationScreen({ navigation }: Props) {
 
   const filtered = useMemo(() => {
     if (activeTab === 'ALL') return data;
-    if (activeTab === 'AIBOT') return data.filter((d) => d.type === 'AIBOT');
-    return data.filter((d) => d.type === 'COMMUNITY');
+    if (activeTab === 'COMMUNITY') {
+      return data.filter(item => item.type === 'COMMUNITY');
+    }
+    return data.filter(item => item.type === 'KEYWORD');
   }, [activeTab, data]);
+
+  const handleKeywordSetting = () => {
+    navigation?.navigate('InterestKeyword');
+  };
 
   const renderItem = ({ item }: { item: NotiItem }) => {
     return (
       <View style={styles.itemRow}>
         <View style={styles.iconBox}>
-          {/* 아이콘이 따로 있으면 여기 교체 가능 */}
           <Text style={styles.iconText}>i</Text>
         </View>
 
         <View style={styles.itemTextArea}>
-          <Text style={styles.itemTitle}>{item.title}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.itemTitle}>{item.title}</Text>
+            {item.type === 'KEYWORD' && item.keyword ? (
+              <View style={styles.keywordBadge}>
+                <Text style={styles.keywordBadgeText}>#{item.keyword}</Text>
+              </View>
+            ) : null}
+          </View>
+
           <Text style={styles.itemBody} numberOfLines={2}>
             {item.body}
           </Text>
           <Text style={styles.itemTime}>{item.time}</Text>
         </View>
+      </View>
+    );
+  };
+
+  const ListHeader = () => {
+    if (activeTab !== 'KEYWORD') return null;
+
+    return (
+      <View style={styles.keywordSection}>
+        <Text style={styles.keywordSectionTitle}>설정한 관심 키워드</Text>
+
+        <View style={styles.keywordChipWrap}>
+          {keywordList.map(keyword => (
+            <View key={keyword} style={styles.keywordChip}>
+              <Text style={styles.keywordChipText}>#{keyword}</Text>
+            </View>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          style={styles.keywordManageBtn}
+          onPress={handleKeywordSetting}
+        >
+          <Text style={styles.keywordManageBtnText}>키워드 추가/삭제하기</Text>
+        </TouchableOpacity>
+
+        <View style={styles.sectionDivider} />
       </View>
     );
   };
@@ -107,13 +158,10 @@ export default function NotificationScreen({ navigation }: Props) {
           activeOpacity={0.8}
           style={styles.backBtn}
         >
-          {/* back 아이콘 이미지가 없어서 우선 텍스트 처리 (원하면 이미지로 바꿔줄게) */}
           <Text style={styles.backText}>{'<'}</Text>
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>알림</Text>
-
-        {/* 우측 여백용 (정렬 맞추기) */}
         <View style={{ width: 32 }} />
       </View>
 
@@ -125,14 +173,14 @@ export default function NotificationScreen({ navigation }: Props) {
           onPress={() => setActiveTab('ALL')}
         />
         <TabButton
-          label="AI챗봇"
-          active={activeTab === 'AIBOT'}
-          onPress={() => setActiveTab('AIBOT')}
-        />
-        <TabButton
           label="커뮤니티"
           active={activeTab === 'COMMUNITY'}
           onPress={() => setActiveTab('COMMUNITY')}
+        />
+        <TabButton
+          label="키워드"
+          active={activeTab === 'KEYWORD'}
+          onPress={() => setActiveTab('KEYWORD')}
         />
       </View>
 
@@ -141,10 +189,15 @@ export default function NotificationScreen({ navigation }: Props) {
       {/* 리스트 */}
       <FlatList
         data={filtered}
-        keyExtractor={(it) => it.id}
+        keyExtractor={item => item.id}
         renderItem={renderItem}
+        ListHeaderComponent={ListHeader}
         ItemSeparatorComponent={() => <View style={styles.itemDivider} />}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: 12,
+          paddingBottom: 24,
+        }}
         showsVerticalScrollIndicator={false}
       />
     </View>
@@ -179,9 +232,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  backBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  backText: { fontSize: 18, color: TEXT_DARK, fontWeight: '700' },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: TEXT_DARK },
+  backBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backText: {
+    fontSize: 18,
+    color: TEXT_DARK,
+    fontWeight: '700',
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: TEXT_DARK,
+  },
 
   tabRow: {
     flexDirection: 'row',
@@ -197,7 +263,9 @@ const styles = StyleSheet.create({
     color: TEXT_GRAY,
     fontWeight: '600',
   },
-  tabTextActive: { color: TEXT_DARK },
+  tabTextActive: {
+    color: TEXT_DARK,
+  },
   tabIndicator: {
     marginTop: 6,
     height: 2,
@@ -205,7 +273,56 @@ const styles = StyleSheet.create({
     backgroundColor: BLUE,
     borderRadius: 2,
   },
-  tabDivider: { height: 1, backgroundColor: DIVIDER, marginTop: 2 },
+  tabDivider: {
+    height: 1,
+    backgroundColor: DIVIDER,
+    marginTop: 2,
+  },
+
+  keywordSection: {
+    marginBottom: 8,
+  },
+  keywordSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: TEXT_DARK,
+    marginBottom: 10,
+  },
+  keywordChipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  keywordChip: {
+    backgroundColor: CHIP_BG,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  keywordChipText: {
+    fontSize: 12,
+    color: BLUE,
+    fontWeight: '600',
+  },
+  keywordManageBtn: {
+    marginTop: 14,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: DIVIDER,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  keywordManageBtnText: {
+    fontSize: 13,
+    color: BLUE,
+    fontWeight: '700',
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: '#EEF1F8',
+    marginTop: 14,
+  },
 
   itemRow: {
     flexDirection: 'row',
@@ -221,12 +338,50 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
-  iconText: { fontWeight: '800', color: BLUE },
+  iconText: {
+    fontWeight: '800',
+    color: BLUE,
+  },
 
-  itemTextArea: { flex: 1 },
-  itemTitle: { fontSize: 12, fontWeight: '700', color: TEXT_DARK, marginBottom: 4 },
-  itemBody: { fontSize: 12, color: TEXT_GRAY, lineHeight: 16 },
-  itemTime: { marginTop: 6, fontSize: 11, color: TEXT_GRAY },
+  itemTextArea: {
+    flex: 1,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    flexWrap: 'wrap',
+  },
+  itemTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: TEXT_DARK,
+    marginRight: 6,
+  },
+  keywordBadge: {
+    backgroundColor: '#F1F6FF',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  keywordBadgeText: {
+    fontSize: 11,
+    color: BLUE,
+    fontWeight: '600',
+  },
+  itemBody: {
+    fontSize: 12,
+    color: TEXT_GRAY,
+    lineHeight: 16,
+  },
+  itemTime: {
+    marginTop: 6,
+    fontSize: 11,
+    color: TEXT_GRAY,
+  },
 
-  itemDivider: { height: 1, backgroundColor: '#EEF1F8' },
+  itemDivider: {
+    height: 1,
+    backgroundColor: '#EEF1F8',
+  },
 });

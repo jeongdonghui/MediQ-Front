@@ -1,591 +1,625 @@
 // src/screens/home/HomeScreen.tsx
-import React, { useState } from 'react';
+
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   ScrollView,
+  Image,
+  SafeAreaView,
 } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/AppNavigator';
 
-type Props = {
-  navigation?: any;
-};
+type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
-const BG = '#F4F7FF';
-const TEXT_DARK = '#222222';
-const TEXT_GRAY = '#777777';
-const CARD_BG = '#FFFFFF';
+const BLUE = '#0E7AF1';
+const BLUE_LIGHT = '#67A9F5';
+const BG = '#EEF4FF';
+const WHITE = '#FFFFFF';
+const TEXT = '#1F2937';
+const SUB = '#98A2B3';
+const SHADOW = '#000000';
 
-const HomeScreen: React.FC<Props> = ({ navigation }) => {
-  const [hasNotification, setHasNotification] = useState(false);
+export default function HomeScreen({ navigation }: Props) {
+  const hospitalData = [
+    {
+      id: '1',
+      rank: 1,
+      name: '신촌연세병원',
+      address: '서울 서대문구 통일로 413 2층',
+      rating: '4.9',
+      review: '(200+)',
+      isAd: true,
+      image: require('../../assets/home/hospital_1.png'),
+    },
+    {
+      id: '2',
+      rank: 2,
+      name: 'JM가정의학과',
+      address: '서울 마포구 월드컵북로 21',
+      rating: '4.8',
+      review: '(150+)',
+      isAd: false,
+      image: require('../../assets/home/hospital_2.png'),
+    },
+    {
+      id: '3',
+      rank: 3,
+      name: '서울중앙의원',
+      address: '서울 은평구 연서로 118',
+      rating: '4.7',
+      review: '(130+)',
+      isAd: false,
+      image: require('../../assets/home/hospital_3.png'),
+    },
+  ];
 
-  const handleBellPress = () => {
-    console.log('알림 클릭');
-    setHasNotification(false);
-    navigation?.navigate('Notification');
+  const goDiagnosis = () => {
+    navigation.navigate('BodySelect');
   };
 
-  const handleMenuPress = () => {
-    console.log('메뉴 버튼 클릭');
+  const goGuide = () => {
+    navigation.navigate('Tutorial');
   };
 
-  const handleCalendarPress = () => {
-    console.log('캘린더 버튼 클릭');
+  const goHospital = () => {
+    navigation.navigate('PharmacyMap', { query: '병원' });
   };
 
-  const handleHeroPress = () => {
-    console.log('상단 배너(지금 확인하기) 클릭');
+  const goPharmacy = () => {
+    navigation.navigate('PharmacyMap', { query: '약국' });
   };
 
-  const handleMapPress = () => {
-    console.log('지도 카드 클릭');
+  const goNotification = () => {
+    navigation.navigate('Notification');
   };
 
-  const handleCommunityPress = () => {
-    console.log('커뮤니티 카드 클릭');
-  };
-
-  const handleSmallCalendarPress = () => {
-    console.log('캘린더 카드 클릭');
-  };
-
-  const handleQuickSettingPress = () => {
-    console.log('퀵 설정 클릭');
-  };
-
-  const handlePremiumPress = () => {
-    console.log('프리미엄 구독 클릭');
-  };
-
-  const handleNearHospitalPress = () => {
-    console.log('가까운 병원 찾기 클릭');
-  };
-
-  const handleNearPharmacyPress = () => {
-    console.log('가까운 약국 찾기 클릭');
-  };
-
-  const handleFloatingQPress = () => {
-    console.log('플로팅 Q 버튼 클릭');
+  const goCommunityHome = () => {
+    navigation.navigate('CommunityHome');
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* =================== 상단 파란 배너 =================== */}
-        <View style={styles.topBlueSection}>
-          <View style={styles.topBlueOverlayCircle} />
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.hero}>
+            <View style={styles.heroCircle} />
 
-          {/* 상단 헤더 */}
-          <View style={styles.headerRow}>
-            <View style={styles.headerRight}>
-              <TouchableOpacity
-                onPress={handleCalendarPress}
-                activeOpacity={0.8}
-                style={styles.headerIconBtn}
-              >
+            <View style={styles.heroTopIcons}>
+              <TouchableOpacity style={styles.topIconBtn} onPress={goNotification}>
                 <Image
-                  source={require('../../assets/image/calendar_black.png')}
-                  style={styles.headerIcon}
+                  source={require('../../assets/home/icon_bell_red.png')}
+                  style={styles.topIcon}
+                  resizeMode="contain"
                 />
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={handleBellPress}
-                activeOpacity={0.8}
-                style={styles.headerIconBtn}
+                style={styles.topIconBtn}
+                onPress={() =>
+                  navigation.navigate('HamburgerMenu', { loginType: 'mediq' })
+                }
               >
                 <Image
-                  source={
-                    hasNotification
-                      ? require('../../assets/image/red_bell.png')
-                      : require('../../assets/image/bell.png')
-                  }
-                  style={styles.headerIcon}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleMenuPress}
-                activeOpacity={0.8}
-                style={styles.headerIconBtn}
-              >
-                <Image
-                  source={require('../../assets/image/buger.png')}
-                  style={styles.menuIcon}
+                  source={require('../../assets/home/icon_menu.png')}
+                  style={styles.topIcon}
+                  resizeMode="contain"
                 />
               </TouchableOpacity>
             </View>
-          </View>
 
-          {/* 배너 내용 */}
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={handleHeroPress}
-            style={styles.heroWrapper}
-          >
-            <View style={styles.heroCard}>
-              <View style={styles.heroTextArea}>
-                <Text style={styles.heroTitle}>어디가 아픈지 설명해주세요</Text>
-                <Text style={styles.heroSub}>
-                  모호한 언어를 의학 언어로 바꿔드립니다.
+            <View style={styles.heroInner}>
+              <View style={styles.heroLeft}>
+                <Text style={styles.heroTitle}>
+                  내가 지금 어디가 아픈지{'\n'}
+                  정확하게 알고싶다면?
                 </Text>
-                <Text style={styles.heroCta}>지금 확인하기 &gt;</Text>
+
+                <TouchableOpacity style={styles.primaryBtn} onPress={goDiagnosis}>
+                  <Text style={styles.primaryBtnText}>지금 확인하기 &gt;</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.secondaryBtn} onPress={goGuide}>
+                  <Text style={styles.secondaryBtnText}>사용방법 &gt;</Text>
+                </TouchableOpacity>
               </View>
 
-              <Image
-                source={require('../../assets/image/QQ.png')}
-                style={styles.heroQQ}
-              />
+              <View style={styles.heroRight}>
+                <Image
+                  source={require('../../assets/home/mediq_mascot.png')}
+                  style={styles.mascot}
+                  resizeMode="contain"
+                />
+              </View>
             </View>
-          </TouchableOpacity>
-        </View>
+          </View>
 
-        {/* ✅ [CHANGED] 검색바를 topBlueSection 밖으로 빼서 "배너 아래 겹침" 구현 */}
-        <View style={styles.searchBar}>
-          <Image
-            source={require('../../assets/image/logo_mediqC.png')}
-            style={styles.searchLogo}
-          />
-          <Text style={styles.searchPlaceholder}>
-            머리가 지끈, 속이 울렁, 니글거림 ...
-          </Text>
-        </View>
+          <View style={styles.cardsSection}>
+            <View style={styles.gridWrap}>
+              <TouchableOpacity style={styles.mapCard} onPress={goHospital}>
+                <Image
+                  source={require('../../assets/home/map_card.png')}
+                  style={styles.fullImage}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
 
-        {/* 기능 카드 영역 */}
-        <View style={styles.featureRow}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={handleMapPress}
-            style={styles.mapCard}
-          >
-            <Image
-              source={require('../../assets/image/mapbtn.png')}
-              style={styles.mapCardImage}
-            />
-          </TouchableOpacity>
+              <View style={styles.rightCards}>
+                <TouchableOpacity
+                  style={styles.communityCard}
+                  onPress={goCommunityHome}
+                >
+                  <Image
+                    source={require('../../assets/home/community_card.png')}
+                    style={styles.fullImage}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
 
-          <View style={styles.rightStack}>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={handleCommunityPress}
-              style={styles.smallCard}
-            >
-              <View style={styles.smallCardInner}>
-                <View>
-                  <Text style={styles.smallCardTitle}>커뮤니티</Text>
-                  <Text style={styles.smallCardSub}>가까운 병원/약국 찾기</Text>
+                <TouchableOpacity style={styles.calendarCard}>
+                  <Image
+                    source={require('../../assets/home/calendar_card.png')}
+                    style={styles.fullImage}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.middleRow}>
+              <TouchableOpacity style={styles.smallImageCard}>
+                <Image
+                  source={require('../../assets/home/icon_location_setting.png')}
+                  style={styles.fullImage}
+                  resizeMode="contain"
+                />
+                <View style={styles.locationBox}>
+                  <Text style={styles.boxText}>위젯 설정</Text>
                 </View>
-                <Image
-                  source={require('../../assets/image/Hospital.png')}
-                  style={styles.smallCardIcon}
-                />
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={handleSmallCalendarPress}
-              style={styles.smallCard}
-            >
-              <View style={styles.smallCardInner}>
-                <View>
-                  <Text style={styles.smallCardTitle}>캘린더</Text>
-                  <Text style={styles.smallCardSub}>내 일정 기록</Text>
+              <TouchableOpacity style={styles.smallImageCard}>
+                <Image
+                  source={require('../../assets/home/icon_premium.png')}
+                  style={styles.fullImage}
+                  resizeMode="contain"
+                />
+                <View style={styles.premiumBox}>
+                  <Text style={styles.boxText}>프리미엄 구독</Text>
                 </View>
-                <Image
-                  source={require('../../assets/image/calender.png')}
-                  style={styles.smallCardIcon}
-                />
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* ✅ [CHANGED] "위젯/프리미엄" + "오른쪽 프로모"를 디자인처럼 한 줄로 정렬 */}
-        <View style={styles.lowerRow}>
-          <View style={styles.lowerLeft}>
-            <View style={styles.iconBtnRow}>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={handleQuickSettingPress}
-                style={styles.squareIconBtn}
-              >
-                <Image
-                  source={require('../../assets/image/widget.png')}
-                  style={styles.squareIcon}
-                />
-                <Text style={styles.squareIconText}>위젯 설정</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={handlePremiumPress}
-                style={[styles.squareIconBtn, { marginRight: 0 }]} // ✅ [CHANGED] 마지막 카드 마진 제거
-              >
+              <TouchableOpacity style={styles.bannerCard}>
                 <Image
-                  source={require('../../assets/image/cash.png')}
-                  style={styles.squareIcon}
+                  source={require('../../assets/home/hospital_banner.png')}
+                  style={styles.fullImage}
+                  resizeMode="contain"
                 />
-                <Text style={styles.squareIconText}>프리미엄 구독</Text>
               </TouchableOpacity>
             </View>
 
-            {/* ✅ [CHANGED] 병원/약국 찾기 버튼: 더 밑에 일자로 길게 */}
-            <View style={styles.segmentWrap}>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={handleNearHospitalPress}
-                style={styles.segmentSelected}
-              >
-                <Text style={styles.segmentSelectedText}>가까운 병원 찾기</Text>
+            <View style={styles.quickBtnWrap}>
+              <TouchableOpacity style={styles.quickBtn} onPress={goHospital}>
+                <Text style={styles.quickBtnText}>가까운 병원 찾기</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={handleNearPharmacyPress}
-                style={styles.segmentUnselected}
-              >
-                <Text style={styles.segmentUnselectedText}>가까운 약국 찾기</Text>
+              <TouchableOpacity style={styles.quickBtn} onPress={goPharmacy}>
+                <Text style={styles.quickBtnText}>가까운 약국 찾기</Text>
               </TouchableOpacity>
             </View>
-          </View>
 
-          <View style={styles.promoCard}>
-            <Image
-              source={require('../../assets/image/Hospital.png')}
-              style={styles.promoImage}
-            />
-          </View>
-        </View>
-
-        {/* 병원 리스트 섹션(임시) */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>가까운 병원 찾기</Text>
-          <Text style={styles.sectionSub}>거리 순으로 매핑된 결과입니다.</Text>
-        </View>
-
-        <View style={styles.hospitalCard}>
-          <Image
-            source={require('../../assets/image/Hospital.png')}
-            style={styles.hospitalImage}
-          />
-          <View style={styles.hospitalInfo}>
-            <View style={styles.hospitalTopRow}>
-              <View style={styles.rankBadge}>
-                <Text style={styles.rankText}>1</Text>
+            <View style={styles.sectionCard}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>가까운 병원 찾기</Text>
+                <Text style={styles.sectionSub}>거리 순으로 매핑된 결과입니다.</Text>
               </View>
-              <View style={{ flex: 1 }} />
-              <View style={styles.tagBadge}>
-                <Text style={styles.tagText}>광고</Text>
-              </View>
+
+              {hospitalData.map((item, index) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[
+                    styles.hospitalItem,
+                    index !== hospitalData.length - 1 && styles.hospitalItemGap,
+                  ]}
+                  activeOpacity={0.85}
+                  onPress={goHospital}
+                >
+                  <View style={styles.thumbWrap}>
+                    <Image
+                      source={item.image}
+                      style={styles.hospitalThumb}
+                      resizeMode="cover"
+                    />
+
+                    <View style={styles.rankBadge}>
+                      <Text style={styles.rankBadgeText}>{item.rank}</Text>
+                    </View>
+
+                    {item.isAd && (
+                      <View style={styles.adBadge}>
+                        <Text style={styles.adBadgeText}>광고</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.hospitalInfo}>
+                    <Text style={styles.hospitalName}>{item.name}</Text>
+
+                    <Text style={styles.hospitalAddress}>{item.address}</Text>
+
+                    <View style={styles.metaRow}>
+                      <Text style={styles.star}>★</Text>
+                      <Text style={styles.rating}>{item.rating}</Text>
+                      <Text style={styles.review}>{item.review}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
             </View>
 
-            <Text style={styles.hospitalName}>신촌연세병원</Text>
-            <Text style={styles.hospitalAddr} numberOfLines={1}>
-              서울 서대문구 연희로 413 2층
-            </Text>
-            <Text style={styles.hospitalMeta}>4.9 (200+) </Text>
+            <View style={{ height: 24 }} />
           </View>
-
-          <Image
-            source={require('../../assets/image/profile.png')}
-            style={styles.hospitalRightIcon}
-          />
-        </View>
-
-        <View style={{ height: 120 }} />
-      </ScrollView>
-
-      <TouchableOpacity
-        style={styles.floatingQButton}
-        activeOpacity={0.9}
-        onPress={handleFloatingQPress}
-      >
-        <Image
-          source={require('../../assets/image/Qbtns.png')}
-          style={styles.floatingQImage}
-        />
-      </TouchableOpacity>
-    </View>
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
-};
-
-export default HomeScreen;
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BG },
-  scroll: { flex: 1 },
-  scrollContent: {
-    paddingTop: 18,
-    paddingHorizontal: 18,
+  safe: {
+    flex: 1,
+    backgroundColor: BG,
   },
 
-  topBlueSection: {
-    backgroundColor: '#4CAAF7',
-    marginHorizontal: -18,
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    paddingBottom: 54,
-    marginBottom: 0,
+  container: {
+    flex: 1,
+    backgroundColor: BG,
+  },
 
-    // ✅ [CHANGED] 파란 배경 하단 라운드 제거 (디자인처럼 일자)
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
+  content: {
+    paddingBottom: 28,
+  },
 
+  hero: {
+    backgroundColor: BLUE,
+    minHeight: 330,
     overflow: 'hidden',
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 30,
   },
 
-  topBlueOverlayCircle: {
+  heroCircle: {
     position: 'absolute',
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    left: -120,
-    top: 10,
-  },
-
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  headerRight: { flexDirection: 'row', alignItems: 'center' },
-
-  headerIconBtn: {
-    marginLeft: 16,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerIcon: { width: 28, height: 28, resizeMode: 'contain' },
-  menuIcon: { width: 28, height: 28, resizeMode: 'contain' },
-
-  heroWrapper: { marginBottom: 0 },
-  heroCard: {
-    backgroundColor: 'transparent',
-    borderRadius: 18,
-    paddingHorizontal: 6,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  heroTextArea: { flex: 1, paddingRight: 10 },
-  heroTitle: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 6,
-  },
-  heroSub: {
-    color: '#EAF6FF',
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 10,
-  },
-  heroCta: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
+    left: -150,
+    top: -90,
+    width: 470,
+    height: 470,
+    borderRadius: 999,
+    backgroundColor: BLUE_LIGHT,
     opacity: 0.95,
   },
-  heroQQ: {
-    width: 96,
-    height: 96,
-    resizeMode: 'contain',
+
+  heroTopIcons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 14,
+    zIndex: 2,
   },
 
-  searchBar: {
-    backgroundColor: CARD_BG,
-    borderRadius: 26,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
+  topIconBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  topIcon: {
+    width: 50,
+    height: 30,
+  },
+
+  heroInner: {
     flexDirection: 'row',
     alignItems: 'center',
-
-    marginTop: -30,
-    marginBottom: 16,
-
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    marginTop: 40,
+    zIndex: 2,
   },
-  searchLogo: { width: 56, height: 20, resizeMode: 'contain', marginRight: 12 },
-  searchPlaceholder: { color: TEXT_GRAY, fontSize: 12, flex: 1 },
 
-  featureRow: { flexDirection: 'row', marginBottom: 14 },
-  mapCard: {
+  heroLeft: {
     flex: 1,
-    marginRight: 10,
-    backgroundColor: CARD_BG,
-    borderRadius: 18,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    paddingRight: 8,
   },
-  mapCardImage: { width: '100%', height: 170, resizeMode: 'contain' },
 
-  // ✅ [CHANGED] 커뮤니티/캘린더 카드 쪽만 조정
-  rightStack: {
-    width: 160,
-    justifyContent: 'space-between',
-    gap: 10, // ✅ [CHANGED] 두 카드 간격을 일정하게
+  heroRight: {
+    width: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  smallCard: {
-    backgroundColor: '#5FB2FF',
-    borderRadius: 16,
 
-    // ✅ [CHANGED] 패딩/높이/그림자 조정(디자인 느낌)
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    minHeight: 84,
+  heroTitle: {
+    color: WHITE,
+    fontSize: 21,
+    lineHeight: 31,
+    fontWeight: '900',
+    marginBottom: 18,
+  },
 
-    // ✅ [CHANGED] 기존 marginBottom 유지(안전) — gap과 같이 있어도 문제 없음
+  mascot: {
+    width: 150,
+    height: 182,
+  },
+
+  primaryBtn: {
+    backgroundColor: '#5B9BF7',
+    borderRadius: 14,
+    height: 42,
+    width: 138,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 10,
-
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
+    shadowColor: SHADOW,
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
     elevation: 4,
   },
-  smallCardInner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  smallCardTitle: {
-    color: '#fff',
-    fontWeight: '800',
-    fontSize: 16, // ✅ [CHANGED]
-    marginBottom: 6,
-  },
-  smallCardSub: {
-    color: '#EAF6FF',
-    fontSize: 11, // ✅ [CHANGED]
-    fontWeight: '600',
-  },
-  smallCardIcon: {
-    width: 34, // ✅ [CHANGED]
-    height: 34,
-    resizeMode: 'contain',
+
+  primaryBtnText: {
+    color: WHITE,
+    fontSize: 13,
+    fontWeight: '900',
   },
 
-  lowerRow: { flexDirection: 'row', marginBottom: 18 },
-  lowerLeft: { flex: 1, marginRight: 10 },
-
-  iconBtnRow: { flexDirection: 'row', marginBottom: 12 },
-  squareIconBtn: {
-    flex: 1,
-    backgroundColor: CARD_BG,
-    borderRadius: 16,
-    paddingVertical: 12,
+  secondaryBtn: {
+    backgroundColor: WHITE,
+    borderRadius: 14,
+    height: 42,
+    width: 138,
     alignItems: 'center',
-    marginRight: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    justifyContent: 'center',
+    shadowColor: SHADOW,
+    shadowOpacity: 0.16,
+    shadowRadius: 5,
     elevation: 3,
   },
-  squareIcon: { width: 24, height: 24, resizeMode: 'contain', marginBottom: 6 },
-  squareIconText: { fontSize: 11, fontWeight: '700', color: TEXT_DARK },
 
-  segmentWrap: {
-    flexDirection: 'row',
-    backgroundColor: '#E9EDF4',
-    borderRadius: 14,
-    padding: 6,
-    height: 54,
-    alignItems: 'center',
+  secondaryBtnText: {
+    color: BLUE,
+    fontSize: 13,
+    fontWeight: '900',
   },
-  segmentSelected: {
+
+  cardsSection: {
+    marginTop: -42,
+    paddingHorizontal: 16,
+  },
+
+  gridWrap: {
+    flexDirection: 'row',
+  },
+
+  mapCard: {
+    flex: 1.5,
+    height: 238,
+  },
+
+  rightCards: {
+    flex: 1.3,
+    height: 230,
+  },
+
+  communityCard: {
+    height: 110,
+  },
+
+  calendarCard: {
+    height: 110,
+  },
+
+  fullImage: {
+    width: '100%',
+    height: '100%',
+  },
+
+  middleRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 0,
+  },
+
+  smallImageCard: {
+    width: 93,
+    height: 93,
+    left: 7.5,
+    position: 'relative',
+  },
+
+  locationBox: {
+    position: 'absolute',
+    bottom: -12,
+    left: 18,
+  },
+
+  premiumBox: {
+    position: 'absolute',
+    bottom: -12,
+    left: 10,
+  },
+
+  boxText: {
+    fontSize: 10,
+    color: '#6B7280',
+    fontWeight: '800',
+  },
+
+  bannerCard: {
+    flex: 1,
+    height: 110,
+  },
+
+  quickBtnWrap: {
+    marginTop: 14,
+    backgroundColor: '#E7E7E7',
+    borderRadius: 16,
+    padding: 8,
+    flexDirection: 'row',
+    gap: 8,
+  },
+
+  quickBtn: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    height: 42,
-    justifyContent: 'center',
+    height: 46,
     alignItems: 'center',
-    marginRight: 8,
-  },
-  segmentSelectedText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#6B7280',
-  },
-  segmentUnselected: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    borderRadius: 12,
-    height: 42,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  segmentUnselectedText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#6B7280',
   },
 
-  promoCard: {
-    width: 150,
-    backgroundColor: CARD_BG,
+  quickBtnText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '900',
+  },
+
+  sectionCard: {
+    marginTop: 14,
+    backgroundColor: WHITE,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    padding: 14,
   },
-  promoImage: { width: '100%', height: 150, resizeMode: 'cover' },
 
-  sectionHeader: { marginBottom: 10 },
-  sectionTitle: { fontSize: 14, fontWeight: '800', color: TEXT_DARK },
-  sectionSub: { marginTop: 4, fontSize: 11, color: TEXT_GRAY },
-
-  hospitalCard: {
-    backgroundColor: CARD_BG,
-    borderRadius: 18,
-    overflow: 'hidden',
+  sectionHeader: {
     flexDirection: 'row',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    alignItems: 'center',
+    marginBottom: 14,
   },
-  hospitalImage: { width: 110, height: 110, resizeMode: 'cover' },
-  hospitalInfo: { flex: 1, padding: 10 },
-  hospitalTopRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  rankBadge: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#2F80ED', alignItems: 'center', justifyContent: 'center' },
-  rankText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  tagBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: '#FF4D4D' },
-  tagText: { color: '#fff', fontSize: 10, fontWeight: '800' },
 
-  hospitalName: { fontSize: 13, fontWeight: '800', color: TEXT_DARK, marginBottom: 4 },
-  hospitalAddr: { fontSize: 11, color: TEXT_GRAY, marginBottom: 6 },
-  hospitalMeta: { fontSize: 11, color: TEXT_GRAY },
+  sectionTitle: {
+    fontSize: 15,
+    color: '#111827',
+    fontWeight: '900',
+    marginRight: 10,
+  },
 
-  hospitalRightIcon: { width: 38, height: 38, resizeMode: 'contain', margin: 10 },
+  sectionSub: {
+    fontSize: 10,
+    color: '#A0A7B4',
+    fontWeight: '700',
+  },
 
-  floatingQButton: { position: 'absolute', right: 18, bottom: 18 },
-  floatingQImage: { width: 64, height: 64, resizeMode: 'contain' },
+  hospitalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  hospitalItemGap: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F3F5',
+  },
+
+  thumbWrap: {
+    width: 118,
+    height: 96,
+    marginRight: 14,
+    position: 'relative',
+  },
+
+  rankBadge: {
+    position: 'absolute',
+    left: -8,
+    top: -8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#4F83F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 3,
+  },
+
+  rankBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+
+  adBadge: {
+    position: 'absolute',
+    right: -8,
+    top: -6,
+    minWidth: 42,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FF4B4B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    zIndex: 3,
+  },
+
+  adBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+
+  hospitalThumb: {
+    width: 118,
+    height: 96,
+    borderRadius: 14,
+    backgroundColor: '#DDE8FF',
+  },
+
+  hospitalInfo: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingTop: 2,
+  },
+
+  hospitalName: {
+    fontSize: 17,
+    color: TEXT,
+    fontWeight: '900',
+    marginBottom: 6,
+  },
+
+  hospitalAddress: {
+    fontSize: 11,
+    color: SUB,
+    marginBottom: 6,
+    fontWeight: '600',
+    lineHeight: 16,
+  },
+
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  star: {
+    color: '#F6C343',
+    fontSize: 14,
+    marginRight: 4,
+  },
+
+  rating: {
+    color: '#555',
+    fontSize: 12,
+    fontWeight: '900',
+    marginRight: 4,
+  },
+
+  review: {
+    color: '#888',
+    fontSize: 12,
+    fontWeight: '700',
+  },
 });

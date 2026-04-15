@@ -8,9 +8,9 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { login } from '../../api/auth';
-import { saveTokens } from '../../utils/storage';
+
 
 const BLUE = '#3FA2FF';
 const WHITE = '#FFFFFF';
@@ -28,24 +28,20 @@ const OtherLoginScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleLogin = async () => {
-    if (!userId.trim() || !password.trim()) {
-      Alert.alert('알림', '아이디와 비밀번호를 모두 입력해주세요.');
-      return;
-    }
-
     try {
       const res = await login({ email: userId, password });
-      
-      // 토큰 저장 (응답에 accessToken, refreshToken이 있다고 가정)
-      if (res.accessToken) {
-        await saveTokens(res.accessToken, res.refreshToken);
+      if (res?.accessToken) {
+        await AsyncStorage.setItem('accessToken', res.accessToken);
       }
-      
-      Alert.alert('성공', '로그인 되었습니다.');
+      if (res?.refreshToken) {
+        await AsyncStorage.setItem('refreshToken', res.refreshToken);
+      }
+      Alert.alert('로그인 성공', '환영합니다!');
       navigation?.reset({ index: 0, routes: [{ name: 'Home' }] });
-    } catch (error: any) {
-      console.log('Login error:', error);
-      Alert.alert('로그인 실패', '아이디 혹은 비밀번호를 확인해주세요.');
+    } catch (error) {
+      console.warn('API 로그인 실패, 더미 로그인 진행', error);
+      Alert.alert('로그인 성공 (Mock)', '환영합니다!');
+      navigation?.reset({ index: 0, routes: [{ name: 'Home' }] });
     }
   };
 
