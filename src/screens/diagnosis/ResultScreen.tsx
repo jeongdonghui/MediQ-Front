@@ -1,6 +1,7 @@
 // src/screens/diagnosis/ResultScreen.tsx
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
@@ -8,9 +9,35 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Result'>;
 
 export default function ResultScreen({ navigation, route }: Props) {
   const { summary } = route.params;
+  const [isSaved, setIsSaved] = useState(false);
 
   const goOTC = () => navigation.navigate('OTCMedicine', { suspected: summary.suspected });
   const goPharmacy = () => navigation.navigate('PharmacyMap', { query: '약국' });
+
+  const registerToCalendar = async () => {
+    try {
+      const existingRecordsStr = await AsyncStorage.getItem('DIAGNOSIS_RECORDS');
+      const records = existingRecordsStr ? JSON.parse(existingRecordsStr) : [];
+      
+      const newRecord = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        summary: summary,
+        // Determine type for color-coding
+        type: summary.suspected.includes('두통') ? 'MIGRAINE' : (summary.suspected.includes('복통') ? 'STOMACH' : 'OTHER'),
+      };
+
+      records.push(newRecord);
+      await AsyncStorage.setItem('DIAGNOSIS_RECORDS', JSON.stringify(records));
+      
+      setIsSaved(true);
+      Alert.alert('등록 완료', '진단 결과가 달력에 등록되었습니다.', [
+        { text: '확인', onPress: () => navigation.navigate('Calendar') }
+      ]);
+    } catch (e) {
+      console.error('Failed to save diagnosis record', e);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -64,6 +91,16 @@ export default function ResultScreen({ navigation, route }: Props) {
 
           <TouchableOpacity style={styles.smallBtn} onPress={goOTC}>
             <Text style={styles.smallBtnText}>알맞은 상비약 보러가기</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.smallBtn, { backgroundColor: isSaved ? '#E5E7EB' : '#3B82F6', marginTop: 10 }]} 
+            onPress={registerToCalendar}
+            disabled={isSaved}
+          >
+            <Text style={[styles.smallBtnText, { color: isSaved ? '#9CA3AF' : '#FFF' }]}>
+              {isSaved ? '달력 등록 완료' : '캘린더에 등록하기'}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

@@ -16,7 +16,7 @@ import {
   PanResponder
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -29,6 +29,9 @@ export default function KakaoMapScreen() {
   const KAKAO_JS_KEY = 'e65778b5fc9d1b60e914f2dcacef74df';
   const KAKAO_REST_KEY = '80d6bbaa7590809cad13bf740446b4cc';
   const navigation = useNavigation();
+  const route = useRoute<any>();
+  const target = route.params?.target; // 'hospital' or 'pharmacy'
+
   const webviewRef = useRef<WebView>(null);
 
   const [hasAlarm, setHasAlarm] = useState(false);
@@ -234,8 +237,8 @@ export default function KakaoMapScreen() {
                  }
               }
 
-              function searchHospitals(lat, lng) {
-                ps.categorySearch('HP8', renderPlaces, {
+              function searchPlaces(lat, lng, category) {
+                ps.categorySearch(category || 'HP8', renderPlaces, {
                   location: new kakao.maps.LatLng(lat, lng),
                   radius: 3000, 
                   sort: kakao.maps.services.SortBy.DISTANCE
@@ -245,7 +248,16 @@ export default function KakaoMapScreen() {
               function handleAppMessage(event) {
                 try {
                   var msg = JSON.parse(event.data);
-                  if (msg.type === 'SEARCH_KEYWORD') {
+                  if (msg.type === 'INITIAL_SEARCH') {
+                    if (navigator.geolocation) {
+                      navigator.geolocation.getCurrentPosition(function(position) {
+                        var lat = position.coords.latitude;
+                        var lng = position.coords.longitude;
+                        updateMyLocation(lat, lng);
+                        searchPlaces(lat, lng, msg.category);
+                      });
+                    }
+                  } else if (msg.type === 'SEARCH_KEYWORD') {
                     ps.keywordSearch(msg.keyword, function(data, status) {
                       renderPlaces(data, status);
                       if (data.length > 0) {
@@ -271,19 +283,7 @@ export default function KakaoMapScreen() {
               window.addEventListener("message", handleAppMessage);
               document.addEventListener("message", handleAppMessage);
 
-              // Initial Geolocation after SDK load
-              if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                  var lat = position.coords.latitude;
-                  var lng = position.coords.longitude;
-                  updateMyLocation(lat, lng);
-                  searchHospitals(lat, lng);
-                }, function(error) {
-                  searchHospitals(defaultLat, defaultLng);
-                }, { enableHighAccuracy: true });
-              } else {
-                searchHospitals(defaultLat, defaultLng);
-              }
+              // Initial Geolocation handled by RN side message for 'target' support
               
             } catch(e) {
               document.getElementById('map').innerHTML = "<div>Error</div>";
@@ -314,6 +314,10 @@ export default function KakaoMapScreen() {
             allowFileAccess={true}
             onMessage={handleMessage}
             showsVerticalScrollIndicator={false}
+            onLoadEnd={() => {
+              const category = target === 'pharmacy' ? 'PM9' : 'HP8';
+              webviewRef.current?.postMessage(JSON.stringify({ type: 'INITIAL_SEARCH', category }));
+            }}
           />
         ) : (
           <View style={styles.centerLoading}>

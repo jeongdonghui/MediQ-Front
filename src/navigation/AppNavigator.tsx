@@ -7,12 +7,19 @@ import TutorialScreen from '../screens/home/TutorialScreen';
 
 import SplashScreen from '../screens/auth/SplashScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
+import KakaoLoginScreen from '../screens/auth/KakaoLoginScreen';
 import OtherLoginScreen from '../screens/auth/OtherLoginScreen';
 import VerifyCodeScreen from '../screens/auth/VerifyCodeScreen';
 
 import IdInputScreen from '../screens/signup/IdInputScreen';
 import PasswordInputScreen from '../screens/signup/PasswordInputScreen';
 import NameInputScreen from '../screens/signup/NameInputScreen';
+
+import SubscriptionServiceScreen from '../screens/subscription/SubscriptionServiceScreen';
+import GooglePaymentScreen from '../screens/subscription/GooglePaymentScreen';
+
+import KakaoMapScreen from '../screens/map/KakaoMapScreen';
+import CalendarScreen from '../screens/home/CalendarScreen';
 import BirthdateScreen from '../screens/signup/BirthdateScreen';
 import PhoneNumberScreen from '../screens/signup/PhoneNumberScreen';
 import CheckInfoScreen from '../screens/signup/CheckInfoScreen';
@@ -124,6 +131,7 @@ export type RootStackParamList = {
   Notification: undefined;
 
   Login: undefined;
+  KakaoLogin: undefined;
   OtherLogin: undefined;
   VerifyCode: { phone?: string };
 
@@ -134,6 +142,12 @@ export type RootStackParamList = {
   PhoneNumber: { id: string; password?: string; name: string; nickname: string; birthdate: string; gender: string };
   CheckInfo: { id: string; password?: string; name: string; nickname: string; birthdate: string; gender: string; phone: string };
   ConfirmInfo: undefined;
+
+  SubscriptionService: undefined;
+  GooglePayment: { selectedPlan: 'monthly' | 'quarterly' };
+
+  KakaoMap: { target?: 'hospital' | 'pharmacy' } | undefined;
+  Calendar: undefined;
 
   CommunityHome:
     | {
@@ -248,6 +262,7 @@ export default function AppNavigator() {
       <Stack.Navigator initialRouteName="Splash" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="KakaoLogin" component={KakaoLoginScreen} />
         <Stack.Screen name="OtherLogin" component={OtherLoginScreen} />
         <Stack.Screen name="VerifyCode" component={VerifyCodeScreen} />
 
@@ -260,8 +275,13 @@ export default function AppNavigator() {
         <Stack.Screen name="ConfirmInfo" component={ConfirmInfoScreen} />
 
         <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="Calendar" component={CalendarScreen} />
         <Stack.Screen name="Tutorial" component={TutorialScreen} />
         <Stack.Screen name="Notification" component={NotificationScreen} />
+
+        <Stack.Screen name="SubscriptionService" component={SubscriptionServiceScreen} />
+        <Stack.Screen name="GooglePayment" component={GooglePaymentScreen} />
+        <Stack.Screen name="KakaoMap" component={KakaoMapScreen} />
 
         <Stack.Screen name="CommunityCategory" component={CommunityCategoryScreen} />
         <Stack.Screen name="CommunityHome" component={CommunityHomeScreen} />

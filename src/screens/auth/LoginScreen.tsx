@@ -18,7 +18,7 @@ const WHITE = '#FFFFFF';
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const handleKakaoLogin = () => {
     console.log('카카오 로그인');
-    navigation?.navigate('Splash', { next: 'Home' });
+    navigation?.navigate('KakaoLogin');
   };
 
   const handleMediqLogin = () => {

@@ -66,11 +66,11 @@ export default function HomeScreen({ navigation }: Props) {
   };
 
   const goHospital = () => {
-    navigation.navigate('PharmacyMap', { query: '병원' });
+    navigation.navigate('KakaoMap', { target: 'hospital' });
   };
 
   const goPharmacy = () => {
-    navigation.navigate('PharmacyMap', { query: '약국' });
+    navigation.navigate('KakaoMap', { target: 'pharmacy' });
   };
 
   const goNotification = () => {
@@ -79,6 +79,18 @@ export default function HomeScreen({ navigation }: Props) {
 
   const goCommunityHome = () => {
     navigation.navigate('CommunityHome');
+  };
+
+  const goCalendar = () => {
+    navigation.navigate('Calendar');
+  };
+
+  const goPremium = () => {
+    navigation.navigate('SubscriptionService');
+  };
+
+  const goKakaoMap = () => {
+    navigation.navigate('KakaoMap');
   };
 
   return (
@@ -142,7 +154,7 @@ export default function HomeScreen({ navigation }: Props) {
 
           <View style={styles.cardsSection}>
             <View style={styles.gridWrap}>
-              <TouchableOpacity style={styles.mapCard} onPress={goHospital}>
+              <TouchableOpacity style={styles.mapCard} onPress={goKakaoMap}>
                 <Image
                   source={require('../../assets/home/map_card.png')}
                   style={styles.fullImage}
@@ -162,7 +174,7 @@ export default function HomeScreen({ navigation }: Props) {
                   />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.calendarCard}>
+                <TouchableOpacity style={styles.calendarCard} onPress={goCalendar}>
                   <Image
                     source={require('../../assets/home/calendar_card.png')}
                     style={styles.fullImage}
@@ -184,7 +196,7 @@ export default function HomeScreen({ navigation }: Props) {
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.smallImageCard}>
+              <TouchableOpacity style={styles.smallImageCard} onPress={goPremium}>
                 <Image
                   source={require('../../assets/home/icon_premium.png')}
                   style={styles.fullImage}
