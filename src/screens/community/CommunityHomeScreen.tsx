@@ -12,7 +12,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import { getPosts, BOARD_GROUPS, type AppCommunityPost } from './communityStore';
+import { getPosts, BOARD_GROUPS, type AppCommunityPost, loadPostsFromStorage } from './communityStore';
 import { getCommunityPosts } from '../../api/community';
 
 
@@ -24,19 +24,38 @@ const BG = '#F3F4F6';
 export default function CommunityHomeScreen({ navigation, route }: Props) {
   const selectedBoard = route.params?.selectedBoard ?? '자유게시판';
   const [posts, setPosts] = useState<AppCommunityPost[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const loadPosts = useCallback(async () => {
+  const loadPosts = useCallback(async (query?: string) => {
     let allPosts: AppCommunityPost[] = [];
     try {
-      const data = await getCommunityPosts();
+      const data = await getCommunityPosts({ search: query });
       if (data && data.length > 0) {
-        allPosts = data as unknown as AppCommunityPost[];
-      } else {
-        allPosts = getPosts();
+        // ✅ 서버 데이터와 로컬 데이터(조회수, 좋아요 등) 병합
+        const localPosts = await loadPostsFromStorage();
+        allPosts = data.map((item: any) => {
+          const localMatch = localPosts.find(lp => String(lp.id) === String(item.id));
+          return {
+            id: String(item.id),
+            category: item.category,
+            boardLabel: item.category,
+            time: item.time || new Date().toLocaleDateString('ko-KR'),
+            title: item.title,
+            excerpt: item.content || '',
+            content: item.content || '',
+            author: item.author || '익명',
+            // 로컬 수치가 더 높으면 로컬 수치 사용 (낙관적 적용)
+            views: Math.max(item.views || 0, localMatch?.views || 0),
+            likes: Math.max(item.likes || 0, localMatch?.likes || 0),
+            comments: Math.max(item.comments || 0, localMatch?.comments || 0),
+            isLiked: localMatch?.isLiked || false,
+          };
+        });
       }
     } catch (error) {
-      console.warn('Community API fetch failed, fallback to mock data');
-      allPosts = getPosts();
+      // console.warn('Community API fetch failed', error);
+      // ✅ API 실패 시 로컬 저장소에서 데이터 불러오기
+      allPosts = await loadPostsFromStorage();
     }
 
     const matchedGroup = BOARD_GROUPS.find((group) => group.title === selectedBoard);
@@ -96,8 +115,10 @@ export default function CommunityHomeScreen({ navigation, route }: Props) {
         </Text>
 
         <View style={styles.metaRow}>
-          <Text style={styles.metaEye}>◉ {item.views}</Text>
-          <Text style={styles.metaLike}>♡ {item.likes}</Text>
+          <Text style={styles.metaEye}>◉ 확인 {item.views}</Text>
+          <Text style={[styles.metaLike, item.isLiked && { color: '#FF3B30' }]}>
+            {item.isLiked ? '❤️' : '♡'} {item.likes}
+          </Text>
           <Text style={styles.metaComment}>● {item.comments}</Text>
         </View>
 
@@ -139,13 +160,18 @@ export default function CommunityHomeScreen({ navigation, route }: Props) {
               placeholder="검색어를 입력해 주세요."
               placeholderTextColor="#7D7D7D"
               style={styles.input}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={() => loadPosts(searchQuery)}
             />
 
-            <Image
-              source={require('../../assets/home/icon_look.png')}
-              style={styles.searchIconImage}
-              resizeMode="contain"
-            />
+            <TouchableOpacity onPress={() => loadPosts(searchQuery)}>
+              <Image
+                source={require('../../assets/home/icon_look.png')}
+                style={styles.searchIconImage}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
           </View>
         </View>
 

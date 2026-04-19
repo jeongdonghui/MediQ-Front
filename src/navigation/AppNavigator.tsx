@@ -147,7 +147,7 @@ export type RootStackParamList = {
   GooglePayment: { selectedPlan: 'monthly' | 'quarterly' };
 
   KakaoMap: { target?: 'hospital' | 'pharmacy' } | undefined;
-  Calendar: undefined;
+  Calendar: { newDiagnosis?: any } | undefined;
 
   CommunityHome:
     | {
@@ -163,6 +163,10 @@ export type RootStackParamList = {
 
   CommunityWrite: {
     board?: string;
+    editMode?: boolean;
+    editPostId?: string;
+    editTitle?: string;
+    editContent?: string;
   };
 
   HamburgerMenu: {
@@ -242,6 +246,7 @@ export type RootStackParamList = {
   };
 
   Result: {
+    reportId?: number | null;
     summary: SummaryCard;
   };
 

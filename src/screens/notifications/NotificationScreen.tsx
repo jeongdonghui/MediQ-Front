@@ -37,51 +37,8 @@ export default function NotificationScreen({ navigation }: Props) {
   // 나중에 내 계정의 관심 키워드 API 데이터로 교체
   const keywordList = useMemo(() => ['두통', '정형외과', '야간진료'], []);
 
-  // 더미 알림 데이터
-  // 나중에 API로 교체
-  const data: NotiItem[] = useMemo(
-    () => [
-      {
-        id: '1',
-        type: 'COMMUNITY',
-        title: '커뮤니티',
-        body: '내 글에 새로운 댓글이 달렸어요.\n지금 바로 확인해보세요.',
-        time: '1일전',
-      },
-      {
-        id: '2',
-        type: 'KEYWORD',
-        title: '키워드 알림',
-        body: '설정한 키워드 "두통" 관련 새 글이 올라왔어요.',
-        time: '2일전',
-        keyword: '두통',
-      },
-      {
-        id: '3',
-        type: 'COMMUNITY',
-        title: '커뮤니티',
-        body: '내가 작성한 글에 공감이 추가되었어요.',
-        time: '3일전',
-      },
-      {
-        id: '4',
-        type: 'KEYWORD',
-        title: '키워드 알림',
-        body: '설정한 키워드 "정형외과" 관련 추천 글이 올라왔어요.',
-        time: '5일전',
-        keyword: '정형외과',
-      },
-      {
-        id: '5',
-        type: 'KEYWORD',
-        title: '키워드 알림',
-        body: '설정한 키워드 "야간진료" 관련 게시글이 등록되었어요.',
-        time: '6일전',
-        keyword: '야간진료',
-      },
-    ],
-    []
-  );
+  // 더미 알림 데이터 제거
+  const data: NotiItem[] = [];
 
   const filtered = useMemo(() => {
     if (activeTab === 'ALL') return data;
@@ -193,6 +150,11 @@ export default function NotificationScreen({ navigation }: Props) {
         renderItem={renderItem}
         ListHeaderComponent={ListHeader}
         ItemSeparatorComponent={() => <View style={styles.itemDivider} />}
+        ListEmptyComponent={
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 100 }}>
+             <Text style={{ fontSize: 16, color: '#A0A0A0', fontWeight: '600' }}>새로운 알림이 없습니다.</Text>
+          </View>
+        }
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingTop: 12,

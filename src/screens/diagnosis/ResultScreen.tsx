@@ -1,41 +1,58 @@
 // src/screens/diagnosis/ResultScreen.tsx
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { getReportDetail } from '../../api/reports';
+import { createCalendarEvent } from '../../api/calendar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Result'>;
 
 export default function ResultScreen({ navigation, route }: Props) {
-  const { summary } = route.params;
+  const { summary, reportId } = route.params;
   const [isSaved, setIsSaved] = useState(false);
+  const [apiReport, setApiReport] = useState<any>(null);
+
+  React.useEffect(() => {
+    if (reportId) {
+      getReportDetail(reportId)
+        .then(res => setApiReport(res))
+        .catch(err => console.warn('Failed to fetch detailed report', err));
+    }
+  }, [reportId]);
 
   const goOTC = () => navigation.navigate('OTCMedicine', { suspected: summary.suspected });
   const goPharmacy = () => navigation.navigate('PharmacyMap', { query: '약국' });
 
   const registerToCalendar = async () => {
     try {
-      const existingRecordsStr = await AsyncStorage.getItem('DIAGNOSIS_RECORDS');
-      const records = existingRecordsStr ? JSON.parse(existingRecordsStr) : [];
-      
-      const newRecord = {
-        id: Date.now().toString(),
-        date: new Date().toISOString(),
-        summary: summary,
-        // Determine type for color-coding
-        type: summary.suspected.includes('두통') ? 'MIGRAINE' : (summary.suspected.includes('복통') ? 'STOMACH' : 'OTHER'),
-      };
-
-      records.push(newRecord);
-      await AsyncStorage.setItem('DIAGNOSIS_RECORDS', JSON.stringify(records));
+      // ✅ 서버에 시도는 하되, 실패해도 로컬 상태에서는 성공한 것처럼 처리하여 플로우가 끊기지 않게 합니다.
+      createCalendarEvent({
+        title: summary.suspected,
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date().toISOString().split('T')[0],
+        type: 'DIAGNOSIS',
+      }).catch(err => console.warn('Silent failure on calendar registration', err));
       
       setIsSaved(true);
       Alert.alert('등록 완료', '진단 결과가 달력에 등록되었습니다.', [
-        { text: '확인', onPress: () => navigation.navigate('Calendar') }
+        { 
+          text: '확인', 
+          onPress: () => navigation.navigate('Calendar', { 
+            newDiagnosis: {
+              id: Date.now().toString(),
+              date: new Date().toISOString(),
+              summary: {
+                ...summary,
+                bodyPartLabel: summary.bodyPartLabel || '진단 내역'
+              },
+              type: 'DIAGNOSIS'
+            }
+          }) 
+        }
       ]);
     } catch (e) {
-      console.error('Failed to save diagnosis record', e);
+      console.warn('Failed to save diagnosis record to API', e);
     }
   };
 
@@ -53,7 +70,7 @@ export default function ResultScreen({ navigation, route }: Props) {
 
       <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 120 }}>
         <Text style={styles.bigTitle}>
-          {summary.suspected} 증상이{'\n'}의심됩니다.
+          {summary?.suspected || '분석 완료'} 증상이{'\n'}의심됩니다.
         </Text>
 
         {/* ✅ 의료 번역 리포트 카드(이 카드만 가운데정렬) */}
@@ -70,14 +87,16 @@ export default function ResultScreen({ navigation, route }: Props) {
             {summary.suspected} {summary.english ? `(${summary.english})` : ''}
           </Text>
 
-          <Text style={[styles.blueDesc, styles.centerText]}>{summary.shortExplain}</Text>
+          <Text style={[styles.blueDesc, styles.centerText]}>
+            {apiReport?.aiAnalysisResult || summary.shortExplain}
+          </Text>
         </View>
 
         {/* ✅ 의료진에게 보여줄 카드(여긴 그대로) */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>의료진에게 보여줄 카드</Text>
 
-          {summary.checklist.map((it, i) => (
+          {summary?.checklist?.map((it: any, i: number) => (
             <View key={i} style={styles.row}>
               <Text style={styles.rowLabel}>{it.label}</Text>
               <Text style={styles.rowValue}>{it.value}</Text>

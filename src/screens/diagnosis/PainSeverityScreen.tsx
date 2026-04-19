@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   },
   onsetBtnActive: {
     backgroundColor: '#DCEBFF',
-    borderColor: BLUE,
+    // borderColor: BLUE,
   },
   onsetTxt: { fontSize: 12, fontWeight: '900', color: '#111827' },
   onsetTxtActive: { color: BLUE },

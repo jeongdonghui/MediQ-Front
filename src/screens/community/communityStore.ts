@@ -1,4 +1,5 @@
 import type { CommunityPost } from '../../navigation/AppNavigator';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type VoteInfo = {
   title: string;
@@ -11,6 +12,8 @@ export type AppCommunityPost = CommunityPost & {
   category: string;
   images?: string[];
   vote?: VoteInfo | null;
+  isLiked?: boolean;
+  commentItems?: any[];
 };
 
 export type BoardGroup = {
@@ -38,6 +41,8 @@ export const BOARD_GROUPS: BoardGroup[] = [
   { id: 'back', title: '비만(등) 게시판', items: ['등', '허리', '꼬리뼈'] },
 ];
 
+export const POSTS_STORAGE_KEY = '@community_posts';
+
 let posts: AppCommunityPost[] = [
   {
     id: '1',
@@ -54,6 +59,8 @@ let posts: AppCommunityPost[] = [
     comments: 4,
     images: [],
     vote: null,
+    isLiked: false,
+    commentItems: [],
   },
   {
     id: '2',
@@ -69,6 +76,8 @@ let posts: AppCommunityPost[] = [
     comments: 2,
     images: [],
     vote: null,
+    isLiked: false,
+    commentItems: [],
   },
   {
     id: '3',
@@ -84,11 +93,78 @@ let posts: AppCommunityPost[] = [
     comments: 1,
     images: [],
     vote: null,
+    isLiked: false,
+    commentItems: [],
   },
 ];
 
 export function getPosts(): AppCommunityPost[] {
   return [...posts];
+}
+
+// ✅ 특정 게시글 찾기 전용
+export function getPostById(postId: string): AppCommunityPost | undefined {
+    return posts.find(p => p.id === postId);
+}
+
+// ✅ 조회수 증가
+export function incrementPostViews(postId: string) {
+    const idx = posts.findIndex(p => p.id === postId);
+    if (idx !== -1) {
+        posts[idx].views += 1;
+        savePostsToStorage(posts);
+    }
+}
+
+// ✅ 좋아요(공감) 토글
+export function togglePostLikeLocally(postId: string) {
+    const idx = posts.findIndex(p => p.id === postId);
+    if (idx !== -1) {
+        const post = posts[idx];
+        post.isLiked = !post.isLiked;
+        post.likes += post.isLiked ? 1 : -1;
+        savePostsToStorage(posts);
+    }
+}
+
+// ✅ 댓글 추가
+export function addCommentToPost(postId: string, content: string) {
+    const idx = posts.findIndex(p => p.id === postId);
+    if (idx !== -1) {
+        const post = posts[idx];
+        if (!post.commentItems) post.commentItems = [];
+        const newComment = {
+            id: String(Date.now()),
+            author: '나(사용자)',
+            content: content,
+            time: '방금',
+        };
+        post.commentItems = [newComment, ...post.commentItems];
+        post.comments += 1;
+        savePostsToStorage(posts);
+    }
+}
+
+// ✅ 로컬 저장소에서 데이터 불러오기
+export async function loadPostsFromStorage(): Promise<AppCommunityPost[]> {
+  try {
+    const stored = await AsyncStorage.getItem(POSTS_STORAGE_KEY);
+    if (stored) {
+      posts = JSON.parse(stored);
+    }
+  } catch (e) {
+    console.warn('Failed to load community posts from storage', e);
+  }
+  return [...posts];
+}
+
+// ✅ 로컬 저장소에 데이터 저장하기
+export async function savePostsToStorage(updatedPosts: AppCommunityPost[]) {
+  try {
+    await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(updatedPosts));
+  } catch (e) {
+    console.warn('Failed to save community posts to storage', e);
+  }
 }
 
 export function addPost(input: {
@@ -116,8 +192,75 @@ export function addPost(input: {
     comments: 0,
     images: input.images ?? [],
     vote: input.vote ?? null,
+    isLiked: false,
+    commentItems: [],
   };
 
   posts = [newPost, ...posts];
+  savePostsToStorage(posts); // ✅ 비동기로 저장
   return newPost;
+}
+
+// ✅ 특정 댓글에 답글(대댓글) 추가
+export function addReplyToComment(postId: string, commentId: string, content: string) {
+    const postIdx = posts.findIndex(p => p.id === postId);
+    if (postIdx !== -1) {
+        const post = posts[postIdx];
+        const commentIdx = post.commentItems?.findIndex(c => c.id === commentId);
+        if (commentIdx !== undefined && commentIdx !== -1) {
+            const comment = post.commentItems![commentIdx];
+            if (!comment.replies) comment.replies = [];
+            const newReply = {
+                id: String(Date.now()),
+                author: '나(사용자)',
+                content: content,
+                time: '방금',
+                likes: 0,
+                isLiked: false,
+            };
+            comment.replies = [...comment.replies, newReply];
+            post.comments += 1;
+            savePostsToStorage(posts);
+        }
+    }
+}
+
+// ✅ 댓글 좋아요 토글
+export function toggleCommentLike(postId: string, commentId: string, replyId?: string) {
+    const postIdx = posts.findIndex(p => p.id === postId);
+    if (postIdx !== -1) {
+        const post = posts[postIdx];
+        const commentIdx = post.commentItems?.findIndex(c => c.id === commentId);
+        if (commentIdx !== undefined && commentIdx !== -1) {
+            let target = post.commentItems![commentIdx];
+            if (replyId) {
+                target = target.replies?.find((r: any) => r.id === replyId);
+            }
+            if (target) {
+                target.isLiked = !target.isLiked;
+                target.likes = (target.likes || 0) + (target.isLiked ? 1 : -1);
+                savePostsToStorage(posts);
+            }
+        }
+    }
+}
+
+// ✅ 댓글/답글 삭제
+export function deleteComment(postId: string, commentId: string, replyId?: string) {
+    const postIdx = posts.findIndex(p => p.id === postId);
+    if (postIdx !== -1) {
+        const post = posts[postIdx];
+        if (replyId) {
+            const commentIdx = post.commentItems?.findIndex(c => c.id === commentId);
+            if (commentIdx !== undefined && commentIdx !== -1) {
+                const comment = post.commentItems![commentIdx];
+                comment.replies = comment.replies?.filter((r: any) => r.id !== replyId);
+                post.comments -= 1;
+            }
+        } else {
+            post.commentItems = post.commentItems?.filter(c => c.id !== commentId);
+            post.comments -= 1;
+        }
+        savePostsToStorage(posts);
+    }
 }

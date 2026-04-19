@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   cardItemActive: {
     backgroundColor: SELECT_BG,
-    borderColor: BLUE,
+    // borderColor: BLUE, // 제거: 선택 시 파란 라인이 뜨는 것 방지
     shadowOpacity: 0.12,
     elevation: 3,
   },

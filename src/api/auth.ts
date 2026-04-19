@@ -34,3 +34,8 @@ export const findId = async (data: any) => {
   const response = await apiClient.post('/api/auth/find-id', data);
   return response.data;
 };
+
+export const reissueToken = async (data: { refreshToken: string }) => {
+  const response = await apiClient.post('/api/auth/reissue', data);
+  return response.data;
+};

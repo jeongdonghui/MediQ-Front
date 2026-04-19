@@ -40,6 +40,7 @@ export const getCommunityPosts = async (params?: {
   page?: number;
   size?: number;
   sort?: string;
+  search?: string;
 }): Promise<PostResponse[]> => {
   const response = await apiClient.get('/api/community/posts', { params });
   return response.data || [];
@@ -85,10 +86,59 @@ export const createPostComment = async (postId: string | number, formData: FormD
   return response.data;
 };
 
-/**
- * 투표 하기
- */
 export const votePoll = async (postId: string | number, optionIds: number[]) => {
   const response = await apiClient.post(`/api/community/posts/${postId}/polls/vote`, { optionIds });
+  return response.data;
+};
+
+/**
+ * 게시글 수정 (작성자/관리자)
+ */
+export const updateCommunityPost = async (postId: string | number, data: { title: string; content: string }) => {
+  const response = await apiClient.put(`/api/community/posts/${postId}`, data);
+  return response.data;
+};
+
+/**
+ * 게시글 삭제 (작성자/관리자)
+ */
+export const deleteCommunityPost = async (postId: string | number) => {
+  const response = await apiClient.delete(`/api/community/posts/${postId}`);
+  return response.data;
+};
+
+/**
+ * 댓글 수정 (작성자/관리자)
+ */
+export const updatePostComment = async (postId: string | number, commentId: string | number, formData: FormData) => {
+  const response = await apiClient.put(`/api/community/posts/${postId}/comments/${commentId}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+/**
+ * 댓글 삭제 (작성자/관리자)
+ */
+export const deletePostComment = async (postId: string | number, commentId: string | number) => {
+  const response = await apiClient.delete(`/api/community/posts/${postId}/comments/${commentId}`);
+  return response.data;
+};
+
+/**
+ * 투표 설정 변경
+ */
+export const updatePoll = async (postId: string | number, data: { resultVisibility: string; autoCloseType: string }) => {
+  const response = await apiClient.put(`/api/community/posts/${postId}/polls`, data);
+  return response.data;
+};
+
+/**
+ * 게시글 내 투표 삭제
+ */
+export const deletePoll = async (postId: string | number) => {
+  const response = await apiClient.delete(`/api/community/posts/${postId}/polls`);
   return response.data;
 };

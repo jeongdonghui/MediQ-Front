@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { getMyProfile, withdrawAccount } from '../../api/users';
+import { logout } from '../../api/auth';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Menu'>;
 
@@ -22,6 +24,40 @@ export default function MenuScreen({ navigation, route }: Props) {
   const [alarmEnabled, setAlarmEnabled] = useState(true);
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [userNickname, setUserNickname] = useState('로딩중');
+
+  useEffect(() => {
+    async function fetchProfile() {
+      try {
+        const profile = await getMyProfile();
+        if (profile && profile.nickname) {
+          setUserNickname(profile.nickname);
+        } else if (profile && profile.name) {
+          setUserNickname(profile.name);
+        } else {
+          setUserNickname('고객');
+        }
+      } catch (error) {
+        setUserNickname('고객');
+      }
+    }
+    fetchProfile();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout({ refreshToken: 'dummy_token' });
+    } catch (e) {}
+    setShowLogoutModal(false);
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+  };
+
+  const handleWithdraw = async () => {
+    try {
+      await withdrawAccount();
+    } catch (e) {}
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -47,17 +83,20 @@ export default function MenuScreen({ navigation, route }: Props) {
 
         <View style={styles.accountSection}>
           <Text style={styles.grayText}>내 계정</Text>
-
-          <View style={styles.accountRow}>
-            <Text style={styles.name}>홍길동님,</Text>
+          <Text style={styles.name}>{userNickname}님,</Text>
+          
+          <View style={styles.tierRow}>
+            <Text style={styles.tierLabel}>회원등급</Text>
             {isKakao ? (
-              <Text style={styles.grade}>💎 Premium</Text>
+              <View style={styles.badgePremium}>
+                <Text style={styles.badgePremiumText}>PREMIUM</Text>
+              </View>
             ) : (
-              <Text style={styles.grade}>Basic</Text>
+              <View style={styles.badgeBasic}>
+                <Text style={styles.badgeBasicText}>BASIC</Text>
+              </View>
             )}
           </View>
-
-          <Text style={styles.grayText}>회원등급</Text>
         </View>
 
         <View style={styles.divider} />
@@ -172,7 +211,7 @@ export default function MenuScreen({ navigation, route }: Props) {
 
           <TouchableOpacity
             style={styles.row}
-            onPress={() => navigation.navigate('Withdraw')}
+            onPress={handleWithdraw}
           >
             <Text style={styles.danger}>회원탈퇴</Text>
             <Text style={styles.dangerArrow}>{'>'}</Text>
@@ -211,7 +250,7 @@ export default function MenuScreen({ navigation, route }: Props) {
 
               <TouchableOpacity
                 style={styles.confirmBtn}
-                onPress={() => setShowLogoutModal(false)}
+                onPress={handleLogout}
               >
                 <Text style={styles.actionText}>로그아웃</Text>
               </TouchableOpacity>
@@ -262,25 +301,50 @@ const styles = StyleSheet.create({
     marginTop: 25,
   },
   grayText: {
-    color: '#9B9B9B',
-    marginBottom: 8,
+    color: '#9CA3AF',
     fontSize: 14,
-  },
-  accountRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    fontWeight: '600',
   },
   name: {
+    marginTop: 10,
+    marginBottom: 2,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111111',
+    fontWeight: '900',
+    color: '#111827',
   },
-  grade: {
-    fontSize: 16,
-    color: '#B4B4B4',
+  tierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  tierLabel: {
+    fontSize: 13,
+    color: '#6B7280',
     fontWeight: '700',
+  },
+  badgeBasic: {
+    backgroundColor: '#E5E7EB',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  badgeBasicText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#4B5563',
+  },
+  badgePremium: {
+    backgroundColor: '#FFF0F0',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  badgePremiumText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FF6A3D',
   },
   divider: {
     height: 1,

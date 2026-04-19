@@ -772,7 +772,7 @@ const styles = StyleSheet.create({
   },
   cardItemActive: {
     backgroundColor: SELECT_BG,
-    borderColor: BLUE,
+    // borderColor: BLUE,
     shadowOpacity: 0.12,
     elevation: 3,
   },
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
   },
   otherBtnActive: {
     backgroundColor: SELECT_BG,
-    borderColor: BLUE,
+    // borderColor: BLUE,
   },
   otherBtnText: { fontSize: 12.5, fontWeight: '900', color: BLUE, marginBottom: 4 },
   otherBtnTextActive: { color: BLUE },

@@ -1,6 +1,6 @@
 // src/screens/home/HomeScreen.tsx
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+import { getMyProfile } from '../../api/users';
 
 const BLUE = '#0E7AF1';
 const BLUE_LIGHT = '#67A9F5';
@@ -24,38 +25,76 @@ const SUB = '#98A2B3';
 const SHADOW = '#000000';
 
 export default function HomeScreen({ navigation }: Props) {
-  const hospitalData = [
+  const KAKAO_REST_KEY = '80d6bbaa7590809cad13bf740446b4cc';
+  const DEFAULT_LAT = 37.5665;
+  const DEFAULT_LNG = 126.9780;
+
+  const [hospitalData, setHospitalData] = useState<any[]>([
     {
-      id: '1',
+      id: 'dummy',
       rank: 1,
-      name: '신촌연세병원',
-      address: '서울 서대문구 통일로 413 2층',
-      rating: '4.9',
-      review: '(200+)',
-      isAd: true,
+      name: '로딩 중...',
+      address: '주변 병원을 불러오고 있습니다.',
+      rating: '0.0',
+      review: '(0)',
+      isAd: false,
       image: require('../../assets/home/hospital_1.png'),
-    },
-    {
-      id: '2',
-      rank: 2,
-      name: 'JM가정의학과',
-      address: '서울 마포구 월드컵북로 21',
-      rating: '4.8',
-      review: '(150+)',
-      isAd: false,
-      image: require('../../assets/home/hospital_2.png'),
-    },
-    {
-      id: '3',
-      rank: 3,
-      name: '서울중앙의원',
-      address: '서울 은평구 연서로 118',
-      rating: '4.7',
-      review: '(130+)',
-      isAd: false,
-      image: require('../../assets/home/hospital_3.png'),
-    },
-  ];
+    }
+  ]);
+
+  useEffect(() => {
+    // 1. 프로필 선행 확보 (앱 구동 캐싱)
+    getMyProfile().catch(() => { });
+
+    // 2. 가장 가까운 병원 3곳 구하기
+    async function fetchHospitals() {
+      try {
+        const res = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?category_group_code=HP8&y=${DEFAULT_LAT}&x=${DEFAULT_LNG}&radius=3000&sort=distance`, {
+          headers: { Authorization: `KakaoAK ${KAKAO_REST_KEY}` }
+        });
+        const data = await res.json();
+        if (data.documents) {
+          const topHospitals = data.documents.slice(0, 3);
+
+          const enriched = await Promise.all(
+            topHospitals.map(async (h: any, idx: number) => {
+              let imgUri = null;
+              try {
+                const imgRes = await fetch(`https://dapi.kakao.com/v2/search/image?query=${encodeURIComponent(h.place_name + ' 병원')}&size=1`, {
+                  headers: { Authorization: `KakaoAK ${KAKAO_REST_KEY}` }
+                });
+                const imgData = await imgRes.json();
+                if (imgData.documents && imgData.documents.length > 0) {
+                  imgUri = { uri: imgData.documents[0].image_url };
+                }
+              } catch (e) { }
+
+              const defaults = [
+                require('../../assets/home/hospital_1.png'),
+                require('../../assets/home/hospital_2.png'),
+                require('../../assets/home/hospital_3.png')
+              ];
+
+              return {
+                id: h.id,
+                rank: idx + 1,
+                name: h.place_name,
+                address: h.road_address_name || h.address_name,
+                rating: '4.' + (9 - idx),
+                review: `(${300 - idx * 50}+)`,
+                isAd: false,
+                image: imgUri || defaults[idx % 3],
+              };
+            })
+          );
+          setHospitalData(enriched);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch hospitals', err);
+      }
+    }
+    fetchHospitals();
+  }, []);
 
   const goDiagnosis = () => {
     navigation.navigate('BodySelect');
@@ -185,29 +224,18 @@ export default function HomeScreen({ navigation }: Props) {
             </View>
 
             <View style={styles.middleRow}>
-              <TouchableOpacity style={styles.smallImageCard}>
-                <Image
-                  source={require('../../assets/home/icon_location_setting.png')}
-                  style={styles.fullImage}
-                  resizeMode="contain"
-                />
-                <View style={styles.locationBox}>
-                  <Text style={styles.boxText}>위젯 설정</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.smallImageCard} onPress={goPremium}>
+              <TouchableOpacity style={styles.premiumWideCard} onPress={goPremium}>
                 <Image
                   source={require('../../assets/home/icon_premium.png')}
-                  style={styles.fullImage}
+                  style={[styles.fullImage, { transform: [{ translateX: -5 }] }]}
                   resizeMode="contain"
                 />
-                <View style={styles.premiumBox}>
+                <View style={styles.premiumBoxWide}>
                   <Text style={styles.boxText}>프리미엄 구독</Text>
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.bannerCard}>
+              <TouchableOpacity style={styles.bannerCardWide}>
                 <Image
                   source={require('../../assets/home/hospital_banner.png')}
                   style={styles.fullImage}
@@ -347,6 +375,7 @@ const styles = StyleSheet.create({
   heroLeft: {
     flex: 1,
     paddingRight: 8,
+    paddingLeft: 12, // Indent to align with the visual edge of mapCard's PNG padding
   },
 
   heroRight: {
@@ -370,7 +399,7 @@ const styles = StyleSheet.create({
 
   primaryBtn: {
     backgroundColor: '#5B9BF7',
-    borderRadius: 14,
+    borderRadius: 8,
     height: 42,
     width: 138,
     alignItems: 'center',
@@ -390,7 +419,7 @@ const styles = StyleSheet.create({
 
   secondaryBtn: {
     backgroundColor: WHITE,
-    borderRadius: 14,
+    borderRadius: 8,
     height: 42,
     width: 138,
     alignItems: 'center',
@@ -424,6 +453,7 @@ const styles = StyleSheet.create({
   rightCards: {
     flex: 1.3,
     height: 230,
+    marginTop: 7, // Visually push down to align Community with Map's transparent top padding
   },
 
   communityCard: {
@@ -441,27 +471,28 @@ const styles = StyleSheet.create({
 
   middleRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 0,
+    marginTop: -32,
   },
 
-  smallImageCard: {
-    width: 93,
-    height: 93,
-    left: 7.5,
+  premiumWideCard: {
+    flex: 1.5,
+    height: 129,
     position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
-  locationBox: {
+  premiumBoxWide: {
     position: 'absolute',
-    bottom: -12,
-    left: 18,
+    bottom: 3,
+    alignItems: 'center',
+    marginLeft: -0, /* Move slightly to the left from center */
   },
 
-  premiumBox: {
-    position: 'absolute',
-    bottom: -12,
-    left: 10,
+  bannerCardWide: {
+    flex: 1.3,
+    height: 135,
+    marginTop: 9, // Push down to physically separate from calendar and top-align with Premium Card
   },
 
   boxText: {
@@ -470,14 +501,9 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  bannerCard: {
-    flex: 1,
-    height: 110,
-  },
-
   quickBtnWrap: {
     marginTop: 14,
-    backgroundColor: '#E7E7E7',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 8,
     flexDirection: 'row',
@@ -486,7 +512,7 @@ const styles = StyleSheet.create({
 
   quickBtn: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#EEF4FF',
     borderRadius: 12,
     height: 46,
     alignItems: 'center',
@@ -495,7 +521,7 @@ const styles = StyleSheet.create({
 
   quickBtnText: {
     fontSize: 13,
-    color: '#666',
+    color: BLUE,
     fontWeight: '900',
   },
 

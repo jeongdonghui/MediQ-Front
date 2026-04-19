@@ -10,12 +10,36 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import { getMySettings, updateMySettings } from '../../api/users';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'InterestKeyword'>;
 
 export default function InterestKeywordScreen({ navigation }: Props) {
   const [keyword, setKeyword] = useState('');
   const [keywords, setKeywords] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const data = await getMySettings();
+      if (data && data.keywords) {
+        setKeywords(data.keywords);
+      }
+    } catch (e) {
+      console.warn('Failed to load settings', e);
+    }
+  };
+
+  const syncKeywords = async (newKeywords: string[]) => {
+    try {
+      await updateMySettings({ keywords: newKeywords });
+    } catch (e) {
+      console.warn('Failed to sync keywords', e);
+    }
+  };
 
   const handleAddKeyword = () => {
     const value = keyword.trim();
@@ -34,7 +58,9 @@ export default function InterestKeywordScreen({ navigation }: Props) {
       return;
     }
 
-    setKeywords((prev) => [...prev, value]);
+    const updated = [...keywords, value];
+    setKeywords(updated);
+    syncKeywords(updated);
     setKeyword('');
   };
 
@@ -48,7 +74,9 @@ export default function InterestKeywordScreen({ navigation }: Props) {
           text: '삭제',
           style: 'destructive',
           onPress: () => {
-            setKeywords((prev) => prev.filter((item) => item !== target));
+             const updated = keywords.filter((item) => item !== target);
+             setKeywords(updated);
+             syncKeywords(updated);
           },
         },
       ]

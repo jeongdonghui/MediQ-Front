@@ -265,7 +265,8 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   cardOn: {
-    borderColor: BLUE,
+    backgroundColor: '#DCEBFF',
+    // borderColor: BLUE,
     shadowOpacity: 0.12,
     elevation: 3,
   },

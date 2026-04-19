@@ -14,7 +14,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { BOARD_GROUPS, addPost, type VoteInfo } from './communityStore';
-import { createCommunityPost } from '../../api/community';
+import { createCommunityPost, updateCommunityPost } from '../../api/community';
 
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CommunityWrite'>;
@@ -27,12 +27,14 @@ const LINE = '#E9E9E9';
 
 export default function CommunityWriteScreen({ navigation, route }: Props) {
   const defaultBoard = route.params?.board ?? '자유게시판';
+  const isEdit = !!route.params?.editMode;
+  const editPostId = route.params?.editPostId;
 
   const [selectedBoard, setSelectedBoard] = useState(defaultBoard);
   const [boardModalVisible, setBoardModalVisible] = useState(false);
 
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [title, setTitle] = useState(route.params?.editTitle || '');
+  const [content, setContent] = useState(route.params?.editContent || '');
 
   const [images, setImages] = useState<string[]>([]);
   const [voteModalVisible, setVoteModalVisible] = useState(false);
@@ -105,19 +107,26 @@ export default function CommunityWriteScreen({ navigation, route }: Props) {
       return;
     }
 
-    // 서버 전송용 FormData 구성
+    // ✅ 게시판 이름 -> ID 맵핑 (BOARD_GROUPS 순서 기준)
+    const allBoardItems = BOARD_GROUPS.flatMap(g => g.items);
+    const boardId = allBoardItems.indexOf(selectedBoard) + 1 || 1;
+
     const formData = new FormData();
-    formData.append('postCreateRequest', JSON.stringify({
+    formData.append(isEdit ? 'postUpdateRequest' : 'postCreateRequest', JSON.stringify({
       title: title.trim(),
       content: content.trim(),
-      boardId: 1, // 백엔드 게시판 ID 맵핑 필요 (우선 1로 임시 지정)
+      boardId: boardId, 
     }));
     // TODO: 이미지 첨부 처리 추가
 
     try {
-      await createCommunityPost(formData);
+      if (isEdit && editPostId) {
+        await updateCommunityPost(Number(editPostId), formData);
+      } else {
+        await createCommunityPost(formData);
+      }
     } catch (e) {
-      console.warn('Create post API failed, storing to local mock as fallback');
+      console.warn('API failed, storing to local mock as fallback');
     }
 
     // fallback/optimistic 업데이트
@@ -145,7 +154,7 @@ export default function CommunityWriteScreen({ navigation, route }: Props) {
               <Text style={styles.closeText}>X</Text>
             </TouchableOpacity>
 
-            <Text style={styles.headerTitle}>글쓰기</Text>
+            <Text style={styles.headerTitle}>{isEdit ? '글 수정' : '글쓰기'}</Text>
 
             <TouchableOpacity onPress={submitPost}>
               <Text style={styles.doneText}>완료</Text>

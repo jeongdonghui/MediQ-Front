@@ -10,9 +10,10 @@ import {
   Dimensions,
   Modal,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import CalendarAddModal from './CalendarAddModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getCalendarMonthly, createCalendarEvent, deleteCalendarEvent, type CalendarEvent } from '../../api/calendar';
 
 const { width } = Dimensions.get('window');
 
@@ -25,7 +26,7 @@ const TEXT = '#111';
 
 interface DiagnosisRecord {
   id: string;
-  date: string; // ISO string
+  date: string;
   summary: {
     suspected: string;
     bodyPartLabel: string;
@@ -34,7 +35,7 @@ interface DiagnosisRecord {
     english?: string;
     shortExplain: string;
   };
-  type: 'MIGRAINE' | 'STOMACH' | 'OTHER';
+  type: 'MIGRAINE' | 'STOMACH' | 'OTHER' | 'EVENT' | 'DIAGNOSIS';
 }
 
 export default function CalendarScreen() {
@@ -48,28 +49,113 @@ export default function CalendarScreen() {
   const [activeRecord, setActiveRecord] = useState<DiagnosisRecord | null>(null);
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
 
+  // ✅ 초기 데이터 로드 (mount 시 1회)
+  useEffect(() => {
+    let isMounted = true;
+    const initLocalData = async () => {
+      try {
+        if (!AsyncStorage) return;
+        const stored = await AsyncStorage.getItem('@calendar_records');
+        if (stored && isMounted) {
+          setRecords(JSON.parse(stored));
+        }
+      } catch (e) {}
+    };
+    initLocalData();
+    return () => { isMounted = false; };
+  }, []);
+
+  // ✅ 데이터 변경 감지 저장
+  useEffect(() => {
+    const saveLocalData = async () => {
+      try {
+        if (!AsyncStorage) return;
+        await AsyncStorage.setItem('@calendar_records', JSON.stringify(records));
+      } catch (e) {}
+    };
+    if (records && records.length > 0) {
+      saveLocalData();
+    }
+  }, [records]);
+
   useEffect(() => {
     if (isFocused) {
       loadRecords();
+      
+      // ✅ 진단 결과 화면에서 넘어온 데이터가 있다면 즉시 반영
+      const params = (navigation as any).getState()?.routes.find((r: any) => r.name === 'Calendar')?.params;
+      if (params?.newDiagnosis) {
+        setRecords(prev => {
+          const exists = prev.some(r => r.id === params.newDiagnosis.id);
+          if (exists) return prev;
+          return [...prev, params.newDiagnosis];
+        });
+        // ✅ 파라미터가 비어있지 않을 때만 setParams를 호출하여 무한 루프 가능성 차단
+        navigation.setParams({ newDiagnosis: undefined });
+      }
     }
-  }, [isFocused]);
+  }, [isFocused, currentDate]);
 
   const loadRecords = async () => {
     try {
-      const data = await AsyncStorage.getItem('DIAGNOSIS_RECORDS');
-      if (data) setRecords(JSON.parse(data));
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth() + 1;
+      const data = await getCalendarMonthly(year, month);
+      
+      // Map API response to local DiagnosisRecord format if needed
+      // API currently returns events and symptoms. 
+      // For simplicity, we'll map them to the existing records format.
+      if (data && data.events) {
+        const mapped = data.events.map((ev: any) => ({
+          id: String(ev.id),
+          date: ev.startDate,
+          summary: {
+            suspected: ev.title,
+            bodyPartLabel: '진단 내역',
+            checklist: [],
+            department: '-',
+            shortExplain: ev.description || '',
+          },
+          type: ev.type || 'OTHER',
+        }));
+        setRecords(mapped);
+      }
     } catch (e) {
-      console.error(e);
+      console.warn('Failed to load calendar events', e);
     }
   };
 
   const saveRecord = async (newRecord: any) => {
+    // ✅ 즉시 화면에 반영 (낙관적 업데이트)
+    setRecords(prev => [...prev, newRecord]);
+    
     try {
-      const updated = [...records, newRecord];
-      setRecords(updated);
-      await AsyncStorage.setItem('DIAGNOSIS_RECORDS', JSON.stringify(updated));
+      const apiData: CalendarEvent = {
+        title: newRecord.summary.suspected,
+        startDate: newRecord.date.split('T')[0],
+        endDate: newRecord.date.split('T')[0],
+        description: newRecord.summary.shortExplain,
+        type: 'EVENT', // ✅ 수동 등록은 EVENT 타입
+      };
+      await createCalendarEvent(apiData);
+      loadRecords();
     } catch (e) {
-      console.error(e);
+      console.warn('Failed to save calendar event', e);
+      // 서버 저장 실패 시에도 로컬엔 유지하거나 필요한 경우 처리를 추가할 수 있습니다.
+    }
+  };
+
+  const handleDeleteRecord = async (id: string | number) => {
+    // ✅ 즉시 화면에서 제거 (낙관적 업데이트)
+    setRecords(prev => prev.filter(r => r.id !== String(id)));
+    setModalVisible(false);
+
+    try {
+      await deleteCalendarEvent(Number(id));
+      // loadRecords(); // 화면에서 이미 지웠으므로 추가 동기화는 선택적입니다.
+    } catch (e) {
+      console.warn('Failed to delete calendar event', e);
+      // 삭제 실패 시 필요하다면 상태를 롤백할 수도 있습니다.
     }
   };
 
@@ -105,7 +191,7 @@ export default function CalendarScreen() {
         const startDate = new Date(r.date);
         startDate.setHours(0,0,0,0);
         const endDate = new Date(r.date);
-        endDate.setDate(endDate.getDate() + 3); // 4 days duration
+        // endDate.setDate(endDate.getDate() + 3); // ❌ 하드코딩된 기간 삭제
         endDate.setHours(23,59,59,999);
 
         const targetDate = new Date(year, month, d);
@@ -126,27 +212,30 @@ export default function CalendarScreen() {
           {isSelected && <View style={styles.selectedCircle} />}
           <Text style={[styles.dayText, isSelected && styles.selectedDayText]}>{d}</Text>
           <View style={styles.barsContainer}>
-            {daysBars.map((b, idx) => (
-              <View 
-                key={b.id} 
-                style={[
-                  styles.bar, 
-                  { 
-                    backgroundColor: b.type === 'MIGRAINE' ? GREEN : (b.type === 'STOMACH' ? GOLD : BLUE),
-                    borderTopLeftRadius: b.isStart ? 4 : 0,
-                    borderBottomLeftRadius: b.isStart ? 4 : 0,
-                    borderTopRightRadius: b.isEnd ? 4 : 0,
-                    borderBottomRightRadius: b.isEnd ? 4 : 0,
-                    marginLeft: b.isStart ? 4 : 0,
-                    marginRight: b.isEnd ? 4 : 0,
-                  }
-                ]} 
-              >
-                  {(b.isStart || d === 1) && (
-                      <Text style={styles.barTitle} numberOfLines={1}>{b.summary.suspected}</Text>
-                  )}
-              </View>
-            ))}
+            {daysBars?.map((b, idx) => {
+              if (!b) return null;
+              return (
+                <View 
+                  key={b.id || idx} 
+                  style={[
+                    styles.bar, 
+                    { 
+                      backgroundColor: b.type === 'MIGRAINE' ? GREEN : (b.type === 'STOMACH' ? GOLD : (b.type === 'DIAGNOSIS' ? BLUE : '#9CA3AF')),
+                      borderTopLeftRadius: b.isStart ? 4 : 0,
+                      borderBottomLeftRadius: b.isStart ? 4 : 0,
+                      borderTopRightRadius: b.isEnd ? 4 : 0,
+                      borderBottomRightRadius: b.isEnd ? 4 : 0,
+                      marginLeft: b.isStart ? 4 : 0,
+                      marginRight: b.isEnd ? 4 : 0,
+                    }
+                  ]} 
+                >
+                    {(b.isStart || d === 1) && (
+                        <Text style={styles.barTitle} numberOfLines={1}>{b.summary?.suspected || '내용 없음'}</Text>
+                    )}
+                </View>
+              );
+            })}
           </View>
         </TouchableOpacity>
       );
@@ -155,8 +244,11 @@ export default function CalendarScreen() {
     return daysArr;
   };
 
-  const lastRecord = records.length > 0 ? records[records.length - 1] : null;
-  const filteredRecordsForDate = records.filter(r => {
+  // ✅ 상단 카드는 진단 결과(DIAGNOSIS)만 표시하도록 필터링 (안전한 접근 적용)
+  const diagnosisRecords = (records || []).filter(r => r && r.type === 'DIAGNOSIS');
+  const lastRecord = diagnosisRecords.length > 0 ? diagnosisRecords[diagnosisRecords.length - 1] : null;
+  const filteredRecordsForDate = (records || []).filter(r => {
+    if (!r || !r.date) return false;
     const rDate = new Date(r.date);
     return rDate.getDate() === selectedDate.getDate() && 
            rDate.getMonth() === selectedDate.getMonth() && 
@@ -178,9 +270,13 @@ export default function CalendarScreen() {
         {/* Top Summary Card */}
         {lastRecord ? (
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryDate}>{new Date(lastRecord.date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}</Text>
+            <Text style={styles.summaryDate}>
+              {lastRecord.date 
+                ? new Date(lastRecord.date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }) 
+                : '날짜 정보 없음'}
+            </Text>
             <Text style={styles.summaryTitle}>
-              <Text style={{ fontWeight: '900' }}>{lastRecord.summary.suspected}</Text>이 4일째{'\n'}진행되고 있어요.
+              <Text style={{ fontWeight: '900' }}>{lastRecord.summary?.suspected || '일정'}</Text>이{'\n'}진행되고 있어요.
             </Text>
             <Text style={styles.summarySub}>따뜻한 물과 찜질을 자주 해주세요</Text>
           </View>
@@ -201,6 +297,7 @@ export default function CalendarScreen() {
 
           {viewMode === 'calendar' ? (
             <View style={styles.calendarContainer}>
+              {/* ... existing monthly navigation ... */}
               <View style={styles.monthNav}>
                 <TouchableOpacity onPress={handlePrevMonth}>
                   <Text style={styles.navText}>‹</Text>
@@ -223,20 +320,18 @@ export default function CalendarScreen() {
             </View>
           ) : (
             <View style={styles.listContainer}>
-                {records.slice().reverse().map(r => (
-                    <View key={r.id} style={styles.historyCard}>
-                        <Text style={styles.historyCardTitle}>{r.summary.suspected}</Text>
+                {(records || []).slice().reverse().map((r, i) => (
+                    <View key={r?.id || i} style={styles.historyCard}>
+                        <Text style={styles.historyCardTitle}>{r?.summary?.suspected || '제목 없음'}</Text>
                         <View style={styles.historyDetailRow}>
-                            <Text style={styles.historyLabel}>증상 시작 시점</Text>
-                            <Text style={styles.historyValue}>{new Date(r.date).toLocaleDateString('ko-KR')}</Text>
+                            <Text style={styles.historyLabel}>등록 일자</Text>
+                            <Text style={styles.historyValue}>
+                              {r?.date ? new Date(r.date).toLocaleDateString('ko-KR') : '-'}
+                            </Text>
                         </View>
                         <View style={styles.historyDetailRow}>
-                            <Text style={styles.historyLabel}>내원 시점</Text>
-                            <Text style={styles.historyValue}>{new Date(r.date).toLocaleDateString('ko-KR')}</Text>
-                        </View>
-                        <View style={styles.historyDetailRow}>
-                            <Text style={styles.historyLabel}>증상 종료 시점</Text>
-                            <Text style={styles.historyValue}>진행중</Text>
+                            <Text style={styles.historyLabel}>진단 구분</Text>
+                            <Text style={styles.historyValue}>{r?.type === 'DIAGNOSIS' ? 'AI 리포트' : '직접 등록'}</Text>
                         </View>
                     </View>
                 ))}
@@ -266,9 +361,9 @@ export default function CalendarScreen() {
                       setModalVisible(true);
                     }}
                   >
-                    <View style={[styles.typeIndicator, { backgroundColor: r.type === 'MIGRAINE' ? GREEN : GOLD }]} />
+                    <View style={[styles.typeIndicator, { backgroundColor: r.type === 'MIGRAINE' ? GREEN : (r.type === 'STOMACH' ? GOLD : BLUE) }]} />
                     <Text style={styles.recordTime}>하루종일</Text>
-                    <Text style={styles.recordSuspected}>{r.summary.suspected}</Text>
+                    <Text style={styles.recordSuspected}>{r.summary?.suspected || '내용 없음'}</Text>
                   </TouchableOpacity>
                 ))
               ) : null}
@@ -295,53 +390,82 @@ export default function CalendarScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <View style={styles.modalBadge}>
-                <Text style={styles.modalBadgeText}>의료진 제시용</Text>
-              </View>
+              {activeRecord?.type === 'DIAGNOSIS' ? (
+                <View style={styles.modalBadge}>
+                  <Text style={styles.modalBadgeText}>의료진 제시용</Text>
+                </View>
+              ) : (
+                <View style={[styles.modalBadge, { backgroundColor: '#E5E7EB' }]}>
+                  <Text style={[styles.modalBadgeText, { color: '#4B5563' }]}>일정 상세</Text>
+                </View>
+              )}
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <Text style={styles.closeModal}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalTitle}>결과 요약 카드</Text>
-            <Text style={styles.modalSub}>의사 선생님께 이 화면을 보여주세요</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View>
+                <Text style={styles.modalTitle}>
+                  {activeRecord?.type === 'DIAGNOSIS' ? '결과 요약 카드' : '등록된 일정'}
+                </Text>
+                <Text style={styles.modalSub}>
+                  {activeRecord?.type === 'DIAGNOSIS' 
+                    ? '의사 선생님께 이 화면을 보여주세요' 
+                    : '기록하신 일정의 상세 내용입니다'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => activeRecord && handleDeleteRecord(activeRecord.id)}>
+                <Text style={{ color: '#FF3B30', fontSize: 13, fontWeight: '700' }}>삭제</Text>
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.modalDivider} />
 
             {activeRecord && (
               <View style={styles.detailsList}>
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>주호소 (CC)</Text>
-                  <Text style={styles.detailValue}>{activeRecord.summary.suspected}</Text>
+                  <Text style={styles.detailLabel}>{activeRecord.type === 'DIAGNOSIS' ? '주호소 (CC)' : '제목'}</Text>
+                  <Text style={styles.detailValue}>{activeRecord.summary?.suspected || '내용 없음'}</Text>
                 </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>발생부위</Text>
-                  <Text style={styles.detailValue}>{activeRecord.summary.bodyPartLabel}</Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>발생 시점</Text>
-                  <Text style={styles.detailValue}>2~3일 전 시작</Text>
-                </View>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>통증 범위 / 강도</Text>
-                  <Text style={styles.detailValue}>중간 정도</Text>
-                </View>
-                <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                    <Text style={styles.detailLabel}>진료 권장</Text>
-                    <Text style={[styles.detailValue, { color: BLUE }]}>{activeRecord.summary.department}</Text>
-                </View>
+
+                {activeRecord.type === 'DIAGNOSIS' ? (
+                  <>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>발생부위</Text>
+                      <Text style={styles.detailValue}>{activeRecord.summary?.bodyPartLabel || '-'}</Text>
+                    </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>발생 시점</Text>
+                      <Text style={styles.detailValue}>진단 기록 참조</Text>
+                    </View>
+                    <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+                        <Text style={styles.detailLabel}>진료 권장</Text>
+                        <Text style={[styles.detailValue, { color: BLUE }]}>{activeRecord.summary?.department || '-'}</Text>
+                    </View>
+                  </>
+                ) : null}
+
+                {activeRecord.summary?.shortExplain ? (
+                  <View style={[styles.detailRow, { borderTopWidth: 1, borderTopColor: '#F3F4F6', flexDirection: 'column', alignItems: 'flex-start' }]}>
+                    <Text style={[styles.detailLabel, { marginBottom: 6 }]}>메모</Text>
+                    <Text style={[styles.detailValue, { textAlign: 'left', fontWeight: '500' }]}>{activeRecord.summary?.shortExplain}</Text>
+                  </View>
+                ) : null}
               </View>
             )}
 
-            <TouchableOpacity 
-              style={styles.modalBtn}
-              onPress={() => {
-                setModalVisible(false);
-                navigation.navigate('OTCMedicine', { suspected: activeRecord?.summary.suspected });
-              }}
-            >
-              <Text style={styles.modalBtnText}>알맞은 상비약 보러가기</Text>
-            </TouchableOpacity>
+            {activeRecord?.type === 'DIAGNOSIS' && (
+              <TouchableOpacity 
+                style={styles.modalBtn}
+                onPress={() => {
+                  setModalVisible(false);
+                  navigation.navigate('OTCMedicine', { suspected: activeRecord?.summary?.suspected || '내용 없음' });
+                }}
+              >
+                <Text style={styles.modalBtnText}>알맞은 상비약 보러가기</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>

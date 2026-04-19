@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   Modal,
   Platform,
+  Alert,
 } from 'react-native';
+import { signup } from '../../api/auth';
 
 const BLUE = '#3FA2FF';
 const WHITE = '#FFFFFF';
@@ -95,22 +97,39 @@ export default function CheckInfoScreen({ navigation, route }: Props) {
     [termChecks],
   );
 
-  // ✅ 가입 플로우 종료: reset (중복 화면/뒤로 꼬임 방지)
-  const handleTermsNext = () => {
+  // ✅ 가입 플로우 종료: API 호출 후 reset
+  const handleTermsNext = async () => {
     if (isTermsNextDisabled) return;
-    setModalVisible(false);
+    
+    try {
+      const signupData = {
+        loginId: id,
+        password: password,
+        name: name,
+        nickname: nickname,
+        phoneNumber: phone,
+        birthDate: birthFront6 ? `19${birthFront6.slice(0, 2)}-${birthFront6.slice(2, 4)}-${birthFront6.slice(4, 6)}` : '', // 임시 매핑
+        gender: birthBack1 === '1' || birthBack1 === '3' ? 'MALE' : 'FEMALE',
+      };
+      
+      await signup(signupData);
+      setModalVisible(false);
 
-    navigation?.reset?.({
-      index: 0,
-      routes: [
-        {
-          name: 'Splash',
-          params: {
-            next: 'Login',
+      navigation?.reset?.({
+        index: 0,
+        routes: [
+          {
+            name: 'Splash',
+            params: {
+              next: 'Login',
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
+    } catch (e) {
+      console.warn('Signup failed', e);
+      Alert.alert('오류', '회원가입 중 서버 오류가 발생했습니다.');
+    }
   };
 
   return (

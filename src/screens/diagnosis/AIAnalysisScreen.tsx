@@ -20,7 +20,7 @@ export default function AIAnalysisScreen({ navigation, route }: Props) {
       { title: 'AI가 증상을 정리 중이에요', sub: '선택한 정보들을 구조화하고 있어요' },
       { title: '가능성 높은 원인을 추리는 중', sub: '증상 패턴을 매칭하고 있어요' },
       { title: '증상 특성을 분석 중', sub: '가능한 원인을 정리하고 있어요' },
-      { title: '메디Q 리포트 작성 중', sub: '결과를 보기 좋게 정리하고 있어요' },
+      { title: 'MediQ 리포트 작성 중', sub: '결과를 보기 좋게 정리하고 있어요' },
     ],
     []
   );
@@ -54,18 +54,23 @@ export default function AIAnalysisScreen({ navigation, route }: Props) {
     outputRange: ['0deg', '360deg'],
   });
 
+  const [reportId, setReportId] = useState<number | null>(null);
+
   useEffect(() => {
     // ✅ 서버에 문진 기록 전송 API 호출 (비동기로 백그라운드 처리)
     createReport({
       mainSymptom: `[${location}] ${symptoms?.join(', ') || '관련 증상'}`,
       painIntensity: severityLevel || 0,
-      symptomArea: area || 'LOCALIZED',
+      symptomArea: painScopes && painScopes.length > 0 ? painScopes[0] : 'LOCALIZED', // ✅ body area가 아닌 통증 범위를 전달
       symptomDuration: onset || 'TODAY',
       additionalSymptom: painScopes?.join(', ') || ''
     }).then(res => {
       console.log('AI Report created successfully:', res);
+      if (res && res.id) {
+        setReportId(res.id);
+      }
     }).catch(err => {
-      console.error('Failed to create AI Report:', err);
+      console.warn('Failed to create AI Report:', err);
     });
 
     let mounted = true;
@@ -77,13 +82,22 @@ export default function AIAnalysisScreen({ navigation, route }: Props) {
 
         const boost = prev < 45 ? 3 : prev < 80 ? 2 : 1;
         const next = Math.min(100, prev + boost);
-
-        const nextPhase = next < 30 ? 0 : next < 60 ? 1 : next < 85 ? 2 : 3;
-        setPhaseIdx(nextPhase);
-
         return next;
       });
     }, 120);
+
+    // pct가 변할 때 phaseIdx를 업데이트하거나, setInterval 내에서 따로 계산
+    // 여기서는 간단히 pct를 감시하는 또 다른 useEffect를 쓰거나, setInterval 내에서 pct 값을 직접 관리하는 것이 좋음.
+    // 하지만 현재 구조를 최소한으로 수정하여 에러를 피함.
+    const phaseCheckId = setInterval(() => {
+      if (!mounted) return;
+      setPct(currentPct => {
+        const nextPhase = currentPct < 30 ? 0 : currentPct < 60 ? 1 : currentPct < 85 ? 2 : 3;
+        setPhaseIdx(nextPhase);
+        return currentPct;
+      });
+    }, 120);
+
 
     return () => {
       mounted = false;
@@ -96,6 +110,7 @@ export default function AIAnalysisScreen({ navigation, route }: Props) {
     const english = area === 'HEAD_FACE' ? 'Migraine' : 'Myalgia';
 
     navigation.replace('Result', {
+      reportId: reportId,
       summary: {
         suspected,
         english,

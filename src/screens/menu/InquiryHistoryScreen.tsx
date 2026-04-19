@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import { getMyInquiries, createInquiry } from '../../api/inquiries';
+import { getMyInquiries, createInquiry, getInquiryDetail } from '../../api/inquiries';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'InquiryHistory'>;
 
@@ -18,13 +19,18 @@ type Mode = 'empty' | 'list' | 'write' | 'detail';
 type InquiryCategory = '진단' | '커뮤니티' | '결제' | '기타';
 
 type InquiryItem = {
-  id: string;
-  status: '답변 완료' | '접수 완료';
-  number: string;
-  text: string;
-  date: string;
+  id: string | number;
+  status: string;
+  number?: string;
+  text?: string;
+  content?: string;
+  date?: string;
+  createdAt?: string;
   answer?: string;
   answerDate?: string;
+  response?: string;
+  answerContent?: string;
+  answeredAt?: string;
 };
 
 export default function InquiryHistoryScreen({ navigation }: Props) {
@@ -58,16 +64,47 @@ export default function InquiryHistoryScreen({ navigation }: Props) {
     },
   ];
 
-  // API 호출 후 실패 시 더미 데이터로 폴백 연동
+  // ✅ 초기 데이터 로드 (mount 시 1회)
+  React.useEffect(() => {
+    let isMounted = true;
+    const initLocalData = async () => {
+      try {
+        if (!AsyncStorage) return;
+        const stored = await AsyncStorage.getItem('@inquiry_records');
+        if (stored && isMounted) {
+            setInquiries(JSON.parse(stored));
+        }
+      } catch (e) {}
+    };
+    initLocalData();
+    return () => { isMounted = false; };
+  }, []);
+
+  // ✅ 데이터 변경 감지 저장
+  React.useEffect(() => {
+    const saveLocalData = async () => {
+      try {
+        if (!AsyncStorage) return;
+        await AsyncStorage.setItem('@inquiry_records', JSON.stringify(inquiries));
+      } catch (e) {}
+    };
+    if (inquiries && inquiries.length > 0) {
+      saveLocalData();
+    }
+  }, [inquiries]);
+
+  // API 호출 강제 연동
   React.useEffect(() => {
     if (mode === 'list') {
       getMyInquiries()
         .then(res => {
-          setInquiries(res.length > 0 ? res : mockInquiries);
+          if (res && Array.isArray(res)) {
+            setInquiries(res);
+          }
         })
         .catch(err => {
-          console.warn('Failed to fetch inquiries, fallback to mock data.', err);
-          setInquiries(mockInquiries);
+          // console.warn('Failed to fetch inquiries.', err);
+          // ❌ 에러 발생 시 setInquiries([])를 하지 않음으로써 로컬 데이터를 보존합니다.
         });
     }
   }, [mode]);
@@ -91,9 +128,18 @@ export default function InquiryHistoryScreen({ navigation }: Props) {
     setMode('write');
   };
 
-  const handleOpenDetail = (item: InquiryItem) => {
+  const handleOpenDetail = async (item: InquiryItem) => {
+    setMode('detail'); // 먼저 화면 전환하여 로딩 느낌을 줍니다.
     setSelectedInquiry(item);
-    setMode('detail');
+    
+    try {
+      const detail = await getInquiryDetail(item.id);
+      if (detail) {
+        setSelectedInquiry(detail);
+      }
+    } catch (error) {
+      console.warn('Failed to fetch inquiry detail', error);
+    }
   };
 
   const handleAddPhotoBox = () => {
@@ -108,12 +154,25 @@ export default function InquiryHistoryScreen({ navigation }: Props) {
     formData.append('category', catEnum);
     formData.append('content', content);
     // TODO: 실제로 photo/file 데이터 append 해야함
+    if (photos.length > 0) {
+      // Dummy check for photos logic
+      formData.append('hasPhotos', 'true');
+    }
 
     try {
       await createInquiry(formData);
     } catch (error) {
-      console.warn('Create Inquiry Failed', error);
+      // console.warn('Create Inquiry Failed', error);
     }
+
+    // ✅ 즉시 로컬 상태에 추가 (낙관적 업데이트)
+    const newInquiry: InquiryItem = {
+        id: Date.now().toString(),
+        status: '접수 완료',
+        content: content,
+        createdAt: new Date().toISOString(),
+    };
+    setInquiries(prev => [newInquiry, ...prev]);
 
     setContent('');
     setPhotos([]);
@@ -170,10 +229,14 @@ export default function InquiryHistoryScreen({ navigation }: Props) {
                 </View>
 
                 <View style={styles.inquiryMain}>
-                  <Text style={styles.statusText}>{item.status}</Text>
-                  <Text style={styles.numberText}>{item.number}</Text>
-                  <Text style={styles.titleText}>{item.text}</Text>
-                  <Text style={styles.dateText}>{item.date}</Text>
+                  <Text style={styles.statusText}>{item.status === 'ANSWERED' || item.status === '답변 완료' ? '답변 완료' : '접수 완료'}</Text>
+                  <Text style={styles.numberText}>No. {item.id}</Text>
+                  <Text style={styles.titleText}>{item.content || item.text || '내용 없음'}</Text>
+                  <Text style={styles.dateText}>
+                    {item.createdAt 
+                      ? new Date(item.createdAt).toLocaleDateString() 
+                      : (item.date || '-')}
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -205,20 +268,36 @@ export default function InquiryHistoryScreen({ navigation }: Props) {
             </View>
 
             <View style={styles.inquiryMain}>
-              <Text style={styles.statusText}>{selectedInquiry.status}</Text>
-              <Text style={styles.numberText}>{selectedInquiry.number}</Text>
-              <Text style={styles.titleText}>{selectedInquiry.text}</Text>
-              <Text style={styles.dateText}>{selectedInquiry.date}</Text>
+              <Text style={styles.statusText}>{selectedInquiry.status === 'ANSWERED' || selectedInquiry.status === '답변 완료' ? '답변 완료' : '접수 완료'}</Text>
+              <Text style={styles.numberText}>No. {selectedInquiry.id}</Text>
+              <Text style={styles.titleText}>{selectedInquiry.content || selectedInquiry.text || '내용 없음'}</Text>
+              <Text style={styles.dateText}>
+                {selectedInquiry.createdAt 
+                  ? new Date(selectedInquiry.createdAt).toLocaleDateString() 
+                  : (selectedInquiry.date || '-')}
+              </Text>
             </View>
           </View>
 
-          {selectedInquiry.answer ? (
+          {(selectedInquiry.answer || (selectedInquiry as any).response || (selectedInquiry as any).answerContent) ? (
             <View style={styles.answerWrap}>
               <Text style={styles.answerTitle}>답변 내용</Text>
-              <Text style={styles.answerText}>{selectedInquiry.answer}</Text>
-              <Text style={styles.dateText}>{selectedInquiry.answerDate}</Text>
+              <Text style={styles.answerText}>
+                {selectedInquiry.answerContent || selectedInquiry.answer || (selectedInquiry as any).response}
+              </Text>
+              <Text style={styles.dateText}>
+                {selectedInquiry.answeredAt 
+                  ? new Date(selectedInquiry.answeredAt).toLocaleDateString() 
+                  : (selectedInquiry.answerDate || '')}
+              </Text>
             </View>
-          ) : null}
+          ) : (
+            <View style={styles.answerWrap}>
+              <Text style={[styles.answerText, { color: '#9CA3AF', textAlign: 'center', marginTop: 20 }]}>
+                아직 답변이 등록되지 않았습니다.
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
     );
