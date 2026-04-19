@@ -48,10 +48,20 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
 
     try {
       const data = await getCommunityPostDetail(post.id);
-      // 서버 데이터가 있으면 병합 (로컬 댓글 등 보존)
-      setDetailData(prev => ({ ...prev, ...data }));
+      // ✅ prev가 null일 경우를 대비해 빈 객체({})를 합산 (prev 오류 해결)
+      setDetailData((prev: any) => ({ ...(prev || {}), ...data }));
+      
       if (data.comments && Array.isArray(data.comments)) {
-        setComments(prev => [...(localPost?.commentItems || []), ...data.comments]);
+        setComments((prev) => {
+          // ✅ 이미 존재하는 댓글(또는 로컬 댓글)과 서버 데이터를 중복 없이 병합
+          const merged = [...prev];
+          data.comments.forEach((c: any) => {
+            if (!merged.find((m: any) => String(m.id) === String(c.id))) {
+              merged.push(c);
+            }
+          });
+          return merged;
+        });
       }
     } catch (e) {
       // console.warn('Failed to fetch post detail', e);
@@ -251,12 +261,12 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
               />
             </View>
 
-            {comments.map((cmt: any, idx: number) => (
-              <View key={cmt.id || idx} style={styles.commentBlock}>
+            {Array.isArray(comments) && comments.map((cmt: any, idx: number) => (
+              <View key={cmt?.id || `cmt_${idx}`} style={styles.commentBlock}>
                 <View style={styles.commentHeader}>
                   <View>
-                    <Text style={styles.commentAuthor}>{cmt.author || '익명'}</Text>
-                    <Text style={styles.commentDate}>{cmt.time || '방금'}</Text>
+                    <Text style={styles.commentAuthor}>{cmt?.author || '익명'}</Text>
+                    <Text style={styles.commentDate}>{cmt?.time || '방금'}</Text>
                   </View>
 
                   <View style={styles.commentActionPill}>
@@ -265,49 +275,48 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
                     </TouchableOpacity>
                     <Text style={styles.commentActionDivider}>|</Text>
                     <TouchableOpacity
-                      style={[styles.commentLikeBtn, cmt.isLiked && styles.commentLikeBtnActive]}
-                      onPress={() => handleToggleCommentLike(cmt.id)}
+                      style={[styles.commentLikeBtn, cmt?.isLiked && styles.commentLikeBtnActive]}
+                      onPress={() => handleToggleCommentLike(cmt?.id)}
                     >
-                      <Text style={[styles.commentLikeText, cmt.isLiked && styles.commentLikeTextActive]}>
-                        {cmt.isLiked ? '❤️' : '♡'} {cmt.likes || ''}
+                      <Text style={[styles.commentLikeText, cmt?.isLiked && styles.commentLikeTextActive]}>
+                        {cmt?.isLiked ? '❤️' : '♡'} {Number(cmt?.likes) || 0}
                       </Text>
                     </TouchableOpacity>
                     <Text style={styles.commentActionDivider}>|</Text>
-                    <TouchableOpacity onPress={() => handleRemoveComment(cmt.id)}>
+                    <TouchableOpacity onPress={() => handleRemoveComment(cmt?.id)}>
                       <Text style={styles.commentActionIcon}>⋮</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
 
                 <Text style={styles.commentText}>
-                  {cmt.content || cmt.text}
+                  {cmt?.content || cmt?.text || ''}
                 </Text>
 
-                {/* ✅ 대댓글(답글) 렌더링 */}
-                {cmt.replies?.map((reply: any, rIdx: number) => (
-                  <View key={reply.id || rIdx} style={styles.replyWrap}>
+                {Array.isArray(cmt?.replies) && cmt.replies.map((reply: any, rIdx: number) => (
+                  <View key={reply?.id || `reply_${rIdx}`} style={styles.replyWrap}>
                     <Text style={styles.replyArrow}>└</Text>
                     <View style={styles.replyBox}>
                       <View style={styles.replyHeader}>
-                        <Text style={styles.replyAuthor}>{reply.author}</Text>
-                        <Text style={styles.replyDate}>{reply.time}</Text>
+                        <Text style={styles.replyAuthor}>{reply?.author || '익명'}</Text>
+                        <Text style={styles.replyDate}>{reply?.time || '방금'}</Text>
 
                         <View style={styles.replyActionPill}>
                           <TouchableOpacity
-                            style={[styles.commentLikeBtn, reply.isLiked && styles.commentLikeBtnActive]}
-                            onPress={() => handleToggleCommentLike(cmt.id, reply.id)}
+                            style={[styles.commentLikeBtn, reply?.isLiked && styles.commentLikeBtnActive]}
+                            onPress={() => handleToggleCommentLike(cmt?.id, reply?.id)}
                           >
-                            <Text style={[styles.commentLikeText, reply.isLiked && styles.commentLikeTextActive]}>
-                              {reply.isLiked ? '❤️' : '♡'} {reply.likes || ''}
+                            <Text style={[styles.commentLikeText, reply?.isLiked && styles.commentLikeTextActive]}>
+                              {reply?.isLiked ? '❤️' : '♡'} {Number(reply?.likes) || 0}
                             </Text>
                           </TouchableOpacity>
                           <Text style={styles.commentActionDivider}>|</Text>
-                          <TouchableOpacity onPress={() => handleRemoveComment(cmt.id, reply.id)}>
+                          <TouchableOpacity onPress={() => handleRemoveComment(cmt?.id, reply?.id)}>
                             <Text style={styles.commentActionIcon}>⋮</Text>
                           </TouchableOpacity>
                         </View>
                       </View>
-                      <Text style={styles.replyText}>{reply.content}</Text>
+                      <Text style={styles.replyText}>{reply?.content || ''}</Text>
                     </View>
                   </View>
                 ))}

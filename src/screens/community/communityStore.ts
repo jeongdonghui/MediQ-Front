@@ -134,13 +134,16 @@ export function addCommentToPost(postId: string, content: string) {
         const post = posts[idx];
         if (!post.commentItems) post.commentItems = [];
         const newComment = {
-            id: String(Date.now()),
+            id: `local_cmt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             author: '나(사용자)',
             content: content,
             time: '방금',
+            likes: 0,
+            isLiked: false,
+            replies: [],
         };
-        post.commentItems = [newComment, ...post.commentItems];
-        post.comments += 1;
+        post.commentItems = [newComment, ...(post.commentItems || [])];
+        post.comments = (Number(post.comments) || 0) + 1;
         savePostsToStorage(posts);
     }
 }
@@ -211,15 +214,15 @@ export function addReplyToComment(postId: string, commentId: string, content: st
             const comment = post.commentItems![commentIdx];
             if (!comment.replies) comment.replies = [];
             const newReply = {
-                id: String(Date.now()),
+                id: `local_reply_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 author: '나(사용자)',
                 content: content,
                 time: '방금',
                 likes: 0,
                 isLiked: false,
             };
-            comment.replies = [...comment.replies, newReply];
-            post.comments += 1;
+            comment.replies = [...(comment.replies || []), newReply];
+            post.comments = (Number(post.comments) || 0) + 1;
             savePostsToStorage(posts);
         }
     }
@@ -238,7 +241,8 @@ export function toggleCommentLike(postId: string, commentId: string, replyId?: s
             }
             if (target) {
                 target.isLiked = !target.isLiked;
-                target.likes = (target.likes || 0) + (target.isLiked ? 1 : -1);
+                const currentLikes = Number(target.likes) || 0;
+                target.likes = target.isLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
                 savePostsToStorage(posts);
             }
         }
