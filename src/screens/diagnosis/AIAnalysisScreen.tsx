@@ -13,7 +13,7 @@ const mascot = require('../../assets/image/mediq_character.png');
 
 export default function AIAnalysisScreen({ navigation, route }: Props) {
   // ✅ AppNavigator에서 정의한 이름 그대로 받아야 함
-  const { area, location, symptoms, painScopes, severityLevel, onset } = route.params;
+  const { area, category, location, symptoms, otherText, painScopes, severityLevel, onset } = route.params;
 
   const phases = useMemo(
     () => [
@@ -59,11 +59,19 @@ export default function AIAnalysisScreen({ navigation, route }: Props) {
   useEffect(() => {
     // ✅ 서버에 문진 기록 전송 API 호출 (비동기로 백그라운드 처리)
     createReport({
-      mainSymptom: `[${location}] ${symptoms?.join(', ') || '관련 증상'}`,
-      painIntensity: severityLevel || 0,
-      symptomArea: painScopes && painScopes.length > 0 ? painScopes[0] : 'LOCALIZED', // ✅ body area가 아닌 통증 범위를 전달
-      symptomDuration: onset || 'TODAY',
-      additionalSymptom: painScopes?.join(', ') || ''
+      body_input_data: {
+        step_1_main_area: area || '',
+        step_2_detailed_region: category || '',
+        step_3_sub_region: location || '',
+        step_4_symptom: {
+          type: symptoms && symptoms.length > 0 ? symptoms[0] : 'UNKNOWN',
+          is_other: !!otherText,
+          other_symptom_detail: otherText || '',
+        },
+        step_5_pain_range: painScopes && painScopes.length > 0 ? painScopes[0] : 'LOCALIZED',
+        step_6_intensity: severityLevel || 0,
+        step_7_onset_time: onset || 'TODAY',
+      }
     }).then(res => {
       console.log('AI Report created successfully:', res);
       if (res && res.id) {

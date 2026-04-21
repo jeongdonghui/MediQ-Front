@@ -2,11 +2,19 @@ import { apiClient } from './client';
 
 // 증상 기록을 서버에 전송하는 요청 모델
 export interface CreateReportRequest {
-  mainSymptom: string;
-  painIntensity: number;
-  symptomArea: string; // 'LOCALIZED' | 'DIFFUSE' | ... 부위 선택
-  symptomDuration: string; // 'TODAY' | 'YESTERDAY' | ...
-  additionalSymptom?: string;
+  body_input_data: {
+    step_1_main_area: string;
+    step_2_detailed_region: string;
+    step_3_sub_region: string;
+    step_4_symptom: {
+      type: string;
+      is_other: boolean;
+      other_symptom_detail: string;
+    };
+    step_5_pain_range: string;
+    step_6_intensity: number;
+    step_7_onset_time: string;
+  };
 }
 
 // 리포트 상세(단건) 정보 응답 모델 (예상)
