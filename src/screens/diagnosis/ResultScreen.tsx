@@ -26,15 +26,16 @@ export default function ResultScreen({ navigation, route }: Props) {
 
   const registerToCalendar = async () => {
     try {
-      // ✅ 서버에 시도는 하되, 실패해도 로컬 상태에서는 성공한 것처럼 처리하여 플로우가 끊기지 않게 합니다.
-      createCalendarEvent({
+      setIsSaved(true); // 버튼 비활성화를 위해 먼저 세팅 (에러 시 다시 되돌림)
+      
+      // ✅ 서버에 등록 시도 (엄격한 에러 처리 적용)
+      await createCalendarEvent({
         title: summary.suspected,
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0],
         type: 'DIAGNOSIS',
-      }).catch(err => console.warn('Silent failure on calendar registration', err));
+      });
       
-      setIsSaved(true);
       Alert.alert('등록 완료', '진단 결과가 달력에 등록되었습니다.', [
         { 
           text: '확인', 
@@ -51,8 +52,10 @@ export default function ResultScreen({ navigation, route }: Props) {
           }) 
         }
       ]);
-    } catch (e) {
-      console.warn('Failed to save diagnosis record to API', e);
+    } catch (e: any) {
+      setIsSaved(false); // 실패 시 버튼 다시 활성화
+      console.error('Failed to save diagnosis record to API', e);
+      Alert.alert('등록 실패', '서버와의 통신에 실패했습니다. 다시 시도해 주세요.');
     }
   };
 

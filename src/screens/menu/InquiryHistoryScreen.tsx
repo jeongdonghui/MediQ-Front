@@ -7,6 +7,8 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
@@ -40,6 +42,7 @@ export default function InquiryHistoryScreen({ navigation }: Props) {
   const [photos, setPhotos] = useState<number[]>([]);
   const [selectedInquiry, setSelectedInquiry] = useState<InquiryItem | null>(null);
   const [inquiries, setInquiries] = useState<InquiryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const mockInquiries: InquiryItem[] = [
     {
@@ -103,8 +106,8 @@ export default function InquiryHistoryScreen({ navigation }: Props) {
           }
         })
         .catch(err => {
-          // console.warn('Failed to fetch inquiries.', err);
-          // ❌ 에러 발생 시 setInquiries([])를 하지 않음으로써 로컬 데이터를 보존합니다.
+          console.error('Failed to fetch inquiries.', err);
+          Alert.alert('조회 실패', '문의 내역을 불러오는 중 오류가 발생했습니다.');
         });
     }
   }, [mode]);
@@ -137,8 +140,10 @@ export default function InquiryHistoryScreen({ navigation }: Props) {
       if (detail) {
         setSelectedInquiry(detail);
       }
-    } catch (error) {
-      console.warn('Failed to fetch inquiry detail', error);
+    } catch (error: any) {
+      console.error('Failed to fetch inquiry detail', error);
+      Alert.alert('상세 조회 실패', '문의 상세 내용을 불러올 수 없습니다.');
+      setMode('list');
     }
   };
 
@@ -147,37 +152,43 @@ export default function InquiryHistoryScreen({ navigation }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!content.trim()) return;
+    if (!content.trim() || isLoading) return;
 
+    setIsLoading(true);
     const formData = new FormData();
     const catEnum = selectedCategory === '결제' ? 'PAYMENT' : selectedCategory === '커뮤니티' ? 'COMMUNITY' : selectedCategory === '기타' ? 'ETC' : 'DIAGNOSIS';
     formData.append('category', catEnum);
     formData.append('content', content);
+    
     // TODO: 실제로 photo/file 데이터 append 해야함
     if (photos.length > 0) {
-      // Dummy check for photos logic
       formData.append('hasPhotos', 'true');
     }
 
     try {
+      // ✅ 서버 등록 시도
       await createInquiry(formData);
-    } catch (error) {
-      // console.warn('Create Inquiry Failed', error);
+      
+      // ✅ 서버 성공 시에만 후속 작업 수행
+      Alert.alert('문의 접수 완료', '문의하신 내용이 정상적으로 접수되었습니다.', [
+          { 
+            text: '확인', 
+            onPress: () => {
+                setContent('');
+                setPhotos([]);
+                setSelectedCategory('진단');
+                setMode('list'); // 리스트로 돌아가면 useEffect에 의해 최신 목록 다시 로드됨
+                getMyInquiries().then(res => { if(res) setInquiries(res); }); // 수동 새로고침
+            } 
+          }
+      ]);
+    } catch (error: any) {
+      console.error('Create Inquiry Failed', error);
+      const errorMsg = error.response?.data?.message || '문의 등록 중 오류가 발생했습니다. 다시 시도해 주세요.';
+      Alert.alert('등록 실패', errorMsg);
+    } finally {
+      setIsLoading(false);
     }
-
-    // ✅ 즉시 로컬 상태에 추가 (낙관적 업데이트)
-    const newInquiry: InquiryItem = {
-        id: Date.now().toString(),
-        status: '접수 완료',
-        content: content,
-        createdAt: new Date().toISOString(),
-    };
-    setInquiries(prev => [newInquiry, ...prev]);
-
-    setContent('');
-    setPhotos([]);
-    setSelectedCategory('진단');
-    setMode('list');
   };
 
   const renderHeader = () => {

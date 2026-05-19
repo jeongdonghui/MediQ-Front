@@ -9,11 +9,13 @@ import {
   Switch,
   Image,
   Modal,
+  Alert,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { getMyProfile, withdrawAccount } from '../../api/users';
 import { logout } from '../../api/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Menu'>;
 
@@ -46,17 +48,40 @@ export default function MenuScreen({ navigation, route }: Props) {
 
   const handleLogout = async () => {
     try {
-      await logout({ refreshToken: 'dummy_token' });
-    } catch (e) {}
-    setShowLogoutModal(false);
-    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      if (refreshToken) {
+        // ✅ 서버 로그아웃 시도
+        await logout({ refreshToken });
+      }
+      
+      // ✅ 서버 로그아웃 성공 시에만 로컬 세션 종료 (사용자 피드백 반영)
+      await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+      setShowLogoutModal(false);
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      
+    } catch (e: any) {
+      console.error('Logout error:', e);
+      const errorMsg = e.response?.data?.message || '서버 로그아웃에 실패했습니다. 네트워크 상태를 확인해 주세요.';
+      Alert.alert('로그아웃 실패', errorMsg);
+    }
   };
 
   const handleWithdraw = async () => {
     try {
+      // ✅ 서버 탈퇴 시도
       await withdrawAccount();
-    } catch (e) {}
-    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      
+      // ✅ 서버 탈퇴 성공 시에만 로컬 데이터 삭제 및 이동
+      await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+      Alert.alert('탈퇴 완료', '그동안 MediQ를 이용해주셔서 감사합니다.', [
+        { text: '확인', onPress: () => navigation.reset({ index: 0, routes: [{ name: 'Login' }] }) }
+      ]);
+      
+    } catch (e: any) {
+      console.error('Withdraw error:', e);
+      const errorMsg = e.response?.data?.message || '탈퇴 처리 중 오류가 발생했습니다. 다시 시도해 주세요.';
+      Alert.alert('탈퇴 실패', errorMsg);
+    }
   };
 
   return (

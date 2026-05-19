@@ -23,6 +23,7 @@ const GOLD = '#D1B000';
 const WHITE = '#FFFFFF';
 const BG = '#F6F7FB';
 const TEXT = '#111';
+import { Alert } from 'react-native';
 
 interface DiagnosisRecord {
   id: string;
@@ -49,33 +50,27 @@ export default function CalendarScreen() {
   const [activeRecord, setActiveRecord] = useState<DiagnosisRecord | null>(null);
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
 
-  // ✅ 초기 데이터 로드 (mount 시 1회)
+  // ✅ 초기 데이터 로드 (mount 시 1회) - 캐시된 데이터가 있으면 먼저 보여줌
   useEffect(() => {
-    let isMounted = true;
-    const initLocalData = async () => {
+    const initLocalCache = async () => {
       try {
-        if (!AsyncStorage) return;
-        const stored = await AsyncStorage.getItem('@calendar_records');
-        if (stored && isMounted) {
+        const stored = await AsyncStorage.getItem('@calendar_records_cache');
+        if (stored) {
           setRecords(JSON.parse(stored));
         }
       } catch (e) {}
     };
-    initLocalData();
-    return () => { isMounted = false; };
+    initLocalCache();
   }, []);
 
-  // ✅ 데이터 변경 감지 저장
+  // ✅ 데이터 변경 시 캐시 업데이트 (선택적)
   useEffect(() => {
-    const saveLocalData = async () => {
+    const updateCache = async () => {
       try {
-        if (!AsyncStorage) return;
-        await AsyncStorage.setItem('@calendar_records', JSON.stringify(records));
+        await AsyncStorage.setItem('@calendar_records_cache', JSON.stringify(records));
       } catch (e) {}
     };
-    if (records && records.length > 0) {
-      saveLocalData();
-    }
+    if (records.length > 0) updateCache();
   }, [records]);
 
   useEffect(() => {
@@ -102,60 +97,67 @@ export default function CalendarScreen() {
       const month = currentDate.getMonth() + 1;
       const data = await getCalendarMonthly(year, month);
       
-      // Map API response to local DiagnosisRecord format if needed
-      // API currently returns events and symptoms. 
-      // For simplicity, we'll map them to the existing records format.
-      if (data && data.events) {
-        const mapped = data.events.map((ev: any) => ({
+      // ✅ 명세서상 응답은 배열 형태입니다.
+      if (data && Array.isArray(data)) {
+        const mapped = data.map((ev: any) => ({
           id: String(ev.id),
           date: ev.startDate,
           summary: {
             suspected: ev.title,
-            bodyPartLabel: '진단 내역',
+            bodyPartLabel: ev.majorCategory || '진단 내역',
             checklist: [],
-            department: '-',
-            shortExplain: ev.description || '',
+            department: ev.recommendedDepartment || '-',
+            shortExplain: ev.symptomExpression || '',
           },
-          type: ev.type || 'OTHER',
+          type: ev.type || (ev.reportId ? 'DIAGNOSIS' : 'EVENT'),
         }));
         setRecords(mapped);
       }
     } catch (e) {
-      console.warn('Failed to load calendar events', e);
+      console.error('Failed to load calendar events', e);
+      Alert.alert('조회 실패', '서버에서 일정을 가져오는데 실패했습니다.');
     }
   };
 
   const saveRecord = async (newRecord: any) => {
-    // ✅ 즉시 화면에 반영 (낙관적 업데이트)
-    setRecords(prev => [...prev, newRecord]);
-    
+    const apiData: CalendarEvent = {
+      title: newRecord.summary.suspected,
+      startDate: newRecord.date.split('T')[0],
+      endDate: newRecord.date.split('T')[0],
+      description: newRecord.summary.shortExplain,
+      type: 'EVENT',
+    };
     try {
-      const apiData: CalendarEvent = {
-        title: newRecord.summary.suspected,
-        startDate: newRecord.date.split('T')[0],
-        endDate: newRecord.date.split('T')[0],
-        description: newRecord.summary.shortExplain,
-        type: 'EVENT', // ✅ 수동 등록은 EVENT 타입
-      };
-      await createCalendarEvent(apiData);
-      loadRecords();
-    } catch (e) {
-      console.warn('Failed to save calendar event', e);
-      // 서버 저장 실패 시에도 로컬엔 유지하거나 필요한 경우 처리를 추가할 수 있습니다.
+      // ✅ 서버 등록 시도
+      const saved = await createCalendarEvent(apiData);
+      
+      // ✅ 서버 성공 시에만 로컬 상태 반영 및 새로고침
+      if (saved) {
+        Alert.alert('등록 완료', '일정이 서버에 저장되었습니다.');
+        loadRecords();
+      }
+    } catch (e: any) {
+      console.error('Save record failed', e);
+      const errorMsg = e.response?.data?.message || '서버 저장 중 오류가 발생했습니다.';
+      Alert.alert('저장 실패', errorMsg);
     }
   };
 
   const handleDeleteRecord = async (id: string | number) => {
-    // ✅ 즉시 화면에서 제거 (낙관적 업데이트)
-    setRecords(prev => prev.filter(r => r.id !== String(id)));
-    setModalVisible(false);
-
     try {
+      // ✅ 서버 삭제 시도
       await deleteCalendarEvent(Number(id));
-      // loadRecords(); // 화면에서 이미 지웠으므로 추가 동기화는 선택적입니다.
-    } catch (e) {
-      console.warn('Failed to delete calendar event', e);
-      // 삭제 실패 시 필요하다면 상태를 롤백할 수도 있습니다.
+      
+      // ✅ 서버 삭제 성공 시에만 UI 업데이트
+      setRecords(prev => prev.filter(r => r.id !== String(id)));
+      setActiveRecord(null);
+      setModalVisible(false);
+      Alert.alert('삭제 완료', '일정이 삭제되었습니다.');
+      
+    } catch (e: any) {
+      console.error('Delete failed', e);
+      const errorMsg = e.response?.data?.message || '서버 삭제 중 오류가 발생했습니다.';
+      Alert.alert('삭제 실패', errorMsg);
     }
   };
 

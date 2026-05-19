@@ -121,7 +121,7 @@ export default function CommunityWriteScreen({ navigation, route }: Props) {
 
     try {
       if (isEdit && editPostId) {
-        await updateCommunityPost(Number(editPostId), formData);
+        await updateCommunityPost(Number(editPostId), { title: title.trim(), content: content.trim() });
       } else {
         await createCommunityPost(formData);
       }
