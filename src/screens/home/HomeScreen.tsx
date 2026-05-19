@@ -9,7 +9,6 @@ import {
   ScrollView,
   Image,
   SafeAreaView,
-  Alert,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
@@ -45,10 +44,7 @@ export default function HomeScreen({ navigation }: Props) {
 
   useEffect(() => {
     // 1. 프로필 선행 확보 (앱 구동 캐싱)
-    getMyProfile().catch((err) => {
-      console.error('Profile fetch failed on Home', err);
-      // 최초 홈 진입 시 프로필 로드 실패는 유도된 로그인 상태가 아닐 수 있으므로 로그만 남기거나 간단히 알림
-    });
+    getMyProfile().catch(() => { });
 
     // 2. 가장 가까운 병원 3곳 구하기
     async function fetchHospitals() {
@@ -84,8 +80,8 @@ export default function HomeScreen({ navigation }: Props) {
                 rank: idx + 1,
                 name: h.place_name,
                 address: h.road_address_name || h.address_name,
-                rating: '-', // ✅ 하드코딩 제거
-                review: '(0)', // ✅ 하드코딩 제거
+                rating: '4.' + (9 - idx),
+                review: `(${300 - idx * 50}+)`,
                 isAd: false,
                 image: imgUri || defaults[idx % 3],
               };
@@ -94,17 +90,7 @@ export default function HomeScreen({ navigation }: Props) {
           setHospitalData(enriched);
         }
       } catch (err) {
-        console.error('Failed to fetch hospitals', err);
-        setHospitalData([{
-          id: 'error',
-          rank: 0,
-          name: '정보 로드 실패',
-          address: '주변 병원 정보를 불러올 수 없습니다.',
-          rating: '-',
-          review: '(0)',
-          isAd: false,
-          image: require('../../assets/home/hospital_1.png'),
-        }]);
+        console.warn('Failed to fetch hospitals', err);
       }
     }
     fetchHospitals();

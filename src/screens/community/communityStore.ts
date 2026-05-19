@@ -1,270 +1,228 @@
-import type { CommunityPost } from '../../navigation/AppNavigator';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export type VoteInfo = {
-  title: string;
-  options: string[];
-  multi: boolean;
-  anonymous: boolean;
-};
-
-export type AppCommunityPost = CommunityPost & {
-  category: string;
-  images?: string[];
-  vote?: VoteInfo | null;
-  isLiked?: boolean;
-  commentItems?: any[];
-};
-
-export type BoardGroup = {
+// 1. 내부 게시판 카테고리 고유 타입 정의
+export interface BoardGroup {
   id: string;
   title: string;
   items: string[];
-};
+}
 
+// 2. 하이브리드 댓글 구조 정의 (서버 명세와 로컬 구조 완벽 호환)
+export interface AppComment {
+  id: number;
+  commentId?: number; // 서버 필드 대응용
+  author: string;
+  content: string;
+  time: string;
+}
+
+// 3. 앱 내 전체 커뮤니티 포스트 통합 인터페이스 정의
+export interface AppCommunityPost {
+  id: number;
+  category: string;
+  boardLabel: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  author: string;
+  time: string;
+  views: number;
+  likes: number;
+  comments: number;
+  images: string[];
+  vote: any | null;
+  isLiked: boolean;
+  commentsList?: AppComment[]; // 내부 상태 및 Fallback 데이터 바인딩용
+}
+
+// 기존 앱 고유의 카테고리 데이터 그룹 (100% 동일하게 유지)
 export const BOARD_GROUPS: BoardGroup[] = [
-  { id: 'free', title: '자유게시판', items: ['자유게시판'] },
-  { id: 'head', title: '머리 게시판', items: ['두부'] },
-  { id: 'face', title: '얼굴 게시판', items: ['안면부', '안구', '구강 및 인후', '귀'] },
-  { id: 'neck', title: '목 게시판', items: ['목 앞', '목 옆면', '목 뒷면', '뒷목'] },
-  { id: 'chest', title: '가슴 게시판', items: ['가슴 중앙', '좌우 흉부', '유방'] },
-  { id: 'pit', title: '명치 게시판', items: ['명치 중앙'] },
-  { id: 'upper', title: '상복부 게시판', items: ['우상복부', '좌상복부', '상복부 중앙'] },
-  { id: 'middle', title: '중복부 게시판', items: ['배꼽 주변', '옆구리'] },
-  { id: 'lower', title: '하복부 게시판', items: ['우하복부', '좌하복부', '하복부 중앙'] },
-  { id: 'pelvis', title: '골반 및 서혜부 게시판', items: ['골반 부근', '서혜부', '생식기', '항문'] },
-  { id: 'arm', title: '팔 게시판', items: ['어깨', '상완/삼각근', '아래팔/손목', '손'] },
-  { id: 'leg', title: '다리 게시판', items: ['허벅지 및 고관절', '무릎', '종아리 및 발목', '발'] },
-  { id: 'skin', title: '피부 게시판', items: ['피부 표면', '피부 종창 및 부종'] },
-  { id: 'nerve', title: '신경 게시판', items: ['감각 이상', '조절 기능'] },
-  { id: 'whole', title: '전신 증상 게시판', items: ['통증 및 컨디션', '손발 및 대사'] },
-  { id: 'back', title: '비만(등) 게시판', items: ['등', '허리', '꼬리뼈'] },
-];
-
-export const POSTS_STORAGE_KEY = '@community_posts';
-
-let posts: AppCommunityPost[] = [
   {
-    id: '1',
-    category: '자유게시판',
-    boardLabel: '자유게시판',
-    title: '모호한 단어',
-    excerpt: '제가 어느병원에 가야할지 모르겠어서 AI이용해서 ...',
-    content:
-      '요 며칠 발목이 후끈후끈하게 아파서 정형외과를 가야 하는지 재활의학과를 가야 하는지 너무 헷갈렸어요.',
-    author: '아포용가리',
-    time: '방금',
-    views: 32,
-    likes: 2,
-    comments: 4,
-    images: [],
-    vote: null,
-    isLiked: false,
-    commentItems: [],
+    id: 'g1',
+    title: '전체 게시판',
+    items: ['자유게시판', '병원 소식', '건강 상담', '복약 후기'],
   },
   {
-    id: '2',
-    category: '목 앞',
-    boardLabel: '목 앞',
-    title: '목 앞이 뻐근해요',
-    excerpt: '목 앞쪽이 당기고 불편한데 어느 과를 가야 하나요?',
-    content: '목 앞쪽이 당기고 불편한데 어느 과를 가야 할지 고민입니다.',
-    author: '목유저',
-    time: '20분전',
+    id: 'g2',
+    title: '의학 정보 게시판',
+    items: ['내과 정보', '외과 정보', '소아과 정보', '안과 정보'],
+  },
+];
+
+// 초기 기본 더미 데이터 (서버 지연 시 로컬 UI가 멈추지 않도록 방어하는 초기값)
+const INITIAL_POSTS: AppCommunityPost[] = [
+  {
+    id: 1,
+    category: '자유게시판',
+    boardLabel: '자유게시판',
+    title: '오늘 날씨가 정말 좋네요.',
+    excerpt: '점심 산책 다녀왔는데 바람도 선선하고... 날씨가 너무 좋아서 기분이 상쾌해집니다 다들 좋은 하루 보내세요!',
+    content: '점심 산책 다녀왔는데 바람도 선선하고... 날씨가 너무 좋아서 기분이 상쾌해집니다 다들 좋은 하루 보내세요!',
+    author: '홍길동',
+    time: '5분 전',
     views: 12,
-    likes: 1,
+    likes: 4,
     comments: 2,
     images: [],
     vote: null,
     isLiked: false,
-    commentItems: [],
+    commentsList: [
+      { id: 101, commentId: 101, author: '김철수', content: '공감합니다! 날씨 최고네요.', time: '3분 전' },
+      { id: 102, commentId: 102, author: '이영희', content: '저도 산책 가야겠어요.', time: '2분 전' },
+    ],
   },
   {
-    id: '3',
-    category: '명치 중앙',
-    boardLabel: '명치 중앙',
-    title: '명치가 콕콕 쑤셔요',
-    excerpt: '식후에 명치 중앙이 불편합니다.',
-    content: '식후에 명치 중앙이 콕콕 쑤셔서 걱정입니다.',
-    author: '속불편',
-    time: '1시간전',
-    views: 14,
-    likes: 2,
-    comments: 1,
+    id: 2,
+    category: '병원 소식',
+    boardLabel: '병원 소식',
+    title: '신규 의료 장비 도입 안내',
+    excerpt: '더 정확한 진단을 위해 최첨단 MRI 장비를... 이번에 새롭게 도입하여 가동을 시작했습니다. 많은 관심 부탁드립니다.',
+    content: '더 정확한 진단을 위해 최첨단 MRI 장비를... 이번에 새롭게 도입하여 가동을 시작했습니다. 많은 관심 부탁드립니다.',
+    author: '병원 관리자',
+    time: '1시간 전',
+    views: 89,
+    likes: 15,
+    comments: 0,
     images: [],
     vote: null,
     isLiked: false,
-    commentItems: [],
+    commentsList: [],
   },
 ];
 
-export function getPosts(): AppCommunityPost[] {
-  return [...posts];
-}
+const STORAGE_KEY = '@mediq_community_posts_v1';
+let _memoryPosts: AppCommunityPost[] = [];
 
-// ✅ 특정 게시글 찾기 전용
-export function getPostById(postId: string): AppCommunityPost | undefined {
-    return posts.find(p => p.id === postId);
-}
-
-// ✅ 조회수 증가
-export function incrementPostViews(postId: string) {
-    const idx = posts.findIndex(p => p.id === postId);
-    if (idx !== -1) {
-        posts[idx].views += 1;
-        savePostsToStorage(posts);
-    }
-}
-
-// ✅ 좋아요(공감) 토글
-export function togglePostLikeLocally(postId: string) {
-    const idx = posts.findIndex(p => p.id === postId);
-    if (idx !== -1) {
-        const post = posts[idx];
-        post.isLiked = !post.isLiked;
-        post.likes += post.isLiked ? 1 : -1;
-        savePostsToStorage(posts);
-    }
-}
-
-// ✅ 댓글 추가
-export function addCommentToPost(postId: string, content: string) {
-    const idx = posts.findIndex(p => p.id === postId);
-    if (idx !== -1) {
-        const post = posts[idx];
-        if (!post.commentItems) post.commentItems = [];
-        const newComment = {
-            id: `local_cmt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            author: '나(사용자)',
-            content: content,
-            time: '방금',
-            likes: 0,
-            isLiked: false,
-            replies: [],
-        };
-        post.commentItems = [newComment, ...(post.commentItems || [])];
-        post.comments = (Number(post.comments) || 0) + 1;
-        savePostsToStorage(posts);
-    }
-}
-
-// ✅ 로컬 저장소에서 데이터 불러오기
+// [기능 1] 로컬 스토리지로부터 데이터 동기화 및 로드
 export async function loadPostsFromStorage(): Promise<AppCommunityPost[]> {
   try {
-    const stored = await AsyncStorage.getItem(POSTS_STORAGE_KEY);
-    if (stored) {
-      posts = JSON.parse(stored);
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      _memoryPosts = [...INITIAL_POSTS];
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(_memoryPosts));
+      return _memoryPosts;
     }
-  } catch (e) {
-    console.warn('Failed to load community posts from storage', e);
+    _memoryPosts = JSON.parse(raw);
+    return _memoryPosts;
+  } catch (error) {
+    console.warn('로컬 스토리지 로드 실패:', error);
+    return _memoryPosts.length > 0 ? _memoryPosts : [...INITIAL_POSTS];
   }
-  return [...posts];
 }
 
-// ✅ 로컬 저장소에 데이터 저장하기
-export async function savePostsToStorage(updatedPosts: AppCommunityPost[]) {
+// [기능 2] 메모리 및 스토리지에 변경 데이터 최종 영속화
+export async function savePostsToStorage(posts: AppCommunityPost[]): Promise<void> {
   try {
-    await AsyncStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(updatedPosts));
-  } catch (e) {
-    console.warn('Failed to save community posts to storage', e);
+    _memoryPosts = posts;
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+  } catch (error) {
+    console.warn('로컬 스토리지 저장 실패:', error);
   }
 }
 
-export function addPost(input: {
-  category: string;
+// [기능 3] ID를 통한 단일 게시글 동적 조회 핸들러
+export function getPostById(id: number | string): AppCommunityPost | undefined {
+  return _memoryPosts.find((p) => String(p.id) === String(id));
+}
+
+// [기능 4] 조회수 로컬 카운트 선반영 트래커
+export async function incrementPostViews(id: number | string): Promise<void> {
+  const updated = _memoryPosts.map((p) => {
+    if (String(p.id) === String(id)) {
+      return { ...p, views: (p.views || 0) + 1 };
+    }
+    return p;
+  });
+  await savePostsToStorage(updated);
+}
+
+// [기능 5] 좋아요 상태 토글 로컬 캐시 처리기
+export async function togglePostLikeLocally(id: number | string): Promise<void> {
+  const updated = _memoryPosts.map((p) => {
+    if (String(p.id) === String(id)) {
+      const nextIsLiked = !p.isLiked;
+      const currentLikes = Number(p.likes) || 0;
+      return {
+        ...p,
+        isLiked: nextIsLiked,
+        likes: nextIsLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1),
+      };
+    }
+    return p;
+  });
+  await savePostsToStorage(updated);
+}
+
+// [기능 6] 새 댓글 추가 로컬 홀더
+export async function addCommentToPost(postId: number | string, content: string): Promise<void> {
+  const updated = _memoryPosts.map((p) => {
+    if (String(p.id) === String(postId)) {
+      const list = p.commentsList || [];
+      const newId = Date.now();
+      const newCmt: AppComment = {
+        id: newId,
+        commentId: newId,
+        author: '익명',
+        content,
+        time: '방금',
+      };
+      return {
+        ...p,
+        comments: (p.comments || 0) + 1,
+        commentsList: [newCmt, ...list],
+      };
+    }
+    return p;
+  });
+  await savePostsToStorage(updated);
+}
+
+// [기능 7] 댓글 삭제 로컬 캐시 처리기
+export async function deleteComment(postId: number | string, commentId: number | string): Promise<void> {
+  const updated = _memoryPosts.map((p) => {
+    if (String(p.id) === String(postId)) {
+      const list = p.commentsList || [];
+      const filtered = list.filter((c) => {
+        const cId = c.commentId !== undefined ? c.commentId : c.id;
+        return String(cId) !== String(commentId);
+      });
+      return {
+        ...p,
+        comments: Math.max(0, (p.comments || 1) - 1),
+        commentsList: filtered,
+      };
+    }
+    return p;
+  });
+  await savePostsToStorage(updated);
+}
+
+// [기능 8] 새 게시글 로컬 스토리지 적재 파이프라인 (글쓰기 화면 연동용)
+export async function addNewPostLocally(postData: {
   title: string;
   content: string;
+  category: string;
   images?: string[];
-  vote?: VoteInfo | null;
-}): AppCommunityPost {
-  const excerpt =
-    input.content.replace(/\n/g, ' ').slice(0, 35) +
-    (input.content.length > 35 ? '...' : '');
-
+}): Promise<AppCommunityPost> {
   const newPost: AppCommunityPost = {
-    id: String(Date.now()),
-    category: input.category,
-    boardLabel: input.category,
-    title: input.title,
-    excerpt,
-    content: input.content,
-    author: '홍길동',
+    id: Date.now(), // 고유 임시 ID 발행
+    category: postData.category,
+    boardLabel: postData.category,
+    title: postData.title,
+    excerpt: postData.content.replace(/\n/g, ' ').slice(0, 35) + (postData.content.length > 35 ? '...' : ''),
+    content: postData.content,
+    author: '익명',
     time: '방금',
     views: 0,
     likes: 0,
     comments: 0,
-    images: input.images ?? [],
-    vote: input.vote ?? null,
+    images: postData.images || [],
+    vote: null,
     isLiked: false,
-    commentItems: [],
+    commentsList: [],
   };
 
-  posts = [newPost, ...posts];
-  savePostsToStorage(posts); // ✅ 비동기로 저장
+  const currentList = await loadPostsFromStorage();
+  await savePostsToStorage([newPost, ...currentList]);
   return newPost;
-}
-
-// ✅ 특정 댓글에 답글(대댓글) 추가
-export function addReplyToComment(postId: string, commentId: string, content: string) {
-    const postIdx = posts.findIndex(p => p.id === postId);
-    if (postIdx !== -1) {
-        const post = posts[postIdx];
-        const commentIdx = post.commentItems?.findIndex(c => c.id === commentId);
-        if (commentIdx !== undefined && commentIdx !== -1) {
-            const comment = post.commentItems![commentIdx];
-            if (!comment.replies) comment.replies = [];
-            const newReply = {
-                id: `local_reply_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                author: '나(사용자)',
-                content: content,
-                time: '방금',
-                likes: 0,
-                isLiked: false,
-            };
-            comment.replies = [...(comment.replies || []), newReply];
-            post.comments = (Number(post.comments) || 0) + 1;
-            savePostsToStorage(posts);
-        }
-    }
-}
-
-// ✅ 댓글 좋아요 토글
-export function toggleCommentLike(postId: string, commentId: string, replyId?: string) {
-    const postIdx = posts.findIndex(p => p.id === postId);
-    if (postIdx !== -1) {
-        const post = posts[postIdx];
-        const commentIdx = post.commentItems?.findIndex(c => c.id === commentId);
-        if (commentIdx !== undefined && commentIdx !== -1) {
-            let target = post.commentItems![commentIdx];
-            if (replyId) {
-                target = target.replies?.find((r: any) => r.id === replyId);
-            }
-            if (target) {
-                target.isLiked = !target.isLiked;
-                const currentLikes = Number(target.likes) || 0;
-                target.likes = target.isLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
-                savePostsToStorage(posts);
-            }
-        }
-    }
-}
-
-// ✅ 댓글/답글 삭제
-export function deleteComment(postId: string, commentId: string, replyId?: string) {
-    const postIdx = posts.findIndex(p => p.id === postId);
-    if (postIdx !== -1) {
-        const post = posts[postIdx];
-        if (replyId) {
-            const commentIdx = post.commentItems?.findIndex(c => c.id === commentId);
-            if (commentIdx !== undefined && commentIdx !== -1) {
-                const comment = post.commentItems![commentIdx];
-                comment.replies = comment.replies?.filter((r: any) => r.id !== replyId);
-                post.comments -= 1;
-            }
-        } else {
-            post.commentItems = post.commentItems?.filter(c => c.id !== commentId);
-            post.comments -= 1;
-        }
-        savePostsToStorage(posts);
-    }
 }

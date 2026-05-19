@@ -22,7 +22,7 @@ export const createCalendarEvent = async (data: CalendarEvent) => {
  * 월별 캘린더 조회 (이벤트 및 증상카드 한 번에 조회)
  */
 export const getCalendarMonthly = async (year: number, month: number) => {
-  const response = await apiClient.get('/api/calendar/month', {
+  const response = await apiClient.get('/api/calendar', {
     params: { year, month },
   });
   return response.data;

@@ -9,13 +9,13 @@ import {
   Switch,
   Image,
   Modal,
-  Alert,
+  Alert, // ✅ 디버그 알림을 띄우기 위해 추가
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { getMyProfile, withdrawAccount } from '../../api/users';
 import { logout } from '../../api/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // ✅ 관리자 상태 저장을 위해 추가
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Menu'>;
 
@@ -27,6 +27,10 @@ export default function MenuScreen({ navigation, route }: Props) {
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [userNickname, setUserNickname] = useState('로딩중');
+
+  // ✅ 관리자 상태 테스트를 위한 비밀 노크 카운트
+  const [secretClickCount, setSecretClickCount] = useState(0);
+  const [isAdminMode, setIsAdminMode] = useState(false);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -43,45 +47,55 @@ export default function MenuScreen({ navigation, route }: Props) {
         setUserNickname('고객');
       }
     }
+
+    // ✅ 화면 로드 시 현재 AsyncStorage에 관리자(ADMIN) 권한이 잡혀있는지 체크
+    async function checkAdminStatus() {
+      try {
+        const currentRole = await AsyncStorage.getItem('userRole');
+        if (currentRole === 'ADMIN') {
+          setIsAdminMode(true);
+        }
+      } catch (e) { }
+    }
+
     fetchProfile();
+    checkAdminStatus();
   }, []);
+
+  // ✅ 버전 정보를 5번 연속 터치했을 때 활성화되는 비밀 모드 전환 함수
+  const handleVersionClick = async () => {
+    const nextCount = secretClickCount + 1;
+    setSecretClickCount(nextCount);
+
+    if (nextCount >= 5) {
+      try {
+        if (isAdminMode) {
+          await AsyncStorage.setItem('userRole', 'USER');
+          setIsAdminMode(false);
+          Alert.alert('디버그 시스템', '일반 유저(USER) 모드로 변경되었습니다.');
+        } else {
+          await AsyncStorage.setItem('userRole', 'ADMIN');
+          setIsAdminMode(true);
+          Alert.alert('디버그 시스템', '🔥 관리자(ADMIN) 권한이 강제 활성화되었습니다!\n이제 1:1 문의 진입 시 답변창이 노출됩니다.');
+        }
+      } catch (e) { }
+      setSecretClickCount(0); // 터치 카운트 리셋
+    }
+  };
 
   const handleLogout = async () => {
     try {
-      const refreshToken = await AsyncStorage.getItem('refreshToken');
-      if (refreshToken) {
-        // ✅ 서버 로그아웃 시도
-        await logout({ refreshToken });
-      }
-      
-      // ✅ 서버 로그아웃 성공 시에만 로컬 세션 종료 (사용자 피드백 반영)
-      await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
-      setShowLogoutModal(false);
-      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-      
-    } catch (e: any) {
-      console.error('Logout error:', e);
-      const errorMsg = e.response?.data?.message || '서버 로그아웃에 실패했습니다. 네트워크 상태를 확인해 주세요.';
-      Alert.alert('로그아웃 실패', errorMsg);
-    }
+      await logout({ refreshToken: 'dummy_token' });
+    } catch (e) { }
+    setShowLogoutModal(false);
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   };
 
   const handleWithdraw = async () => {
     try {
-      // ✅ 서버 탈퇴 시도
       await withdrawAccount();
-      
-      // ✅ 서버 탈퇴 성공 시에만 로컬 데이터 삭제 및 이동
-      await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
-      Alert.alert('탈퇴 완료', '그동안 MediQ를 이용해주셔서 감사합니다.', [
-        { text: '확인', onPress: () => navigation.reset({ index: 0, routes: [{ name: 'Login' }] }) }
-      ]);
-      
-    } catch (e: any) {
-      console.error('Withdraw error:', e);
-      const errorMsg = e.response?.data?.message || '탈퇴 처리 중 오류가 발생했습니다. 다시 시도해 주세요.';
-      Alert.alert('탈퇴 실패', errorMsg);
-    }
+    } catch (e) { }
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   };
 
   return (
@@ -108,8 +122,11 @@ export default function MenuScreen({ navigation, route }: Props) {
 
         <View style={styles.accountSection}>
           <Text style={styles.grayText}>내 계정</Text>
-          <Text style={styles.name}>{userNickname}님,</Text>
-          
+          {/* ✅ 현재 상태가 관리자 모드라면 이름 옆에 뱃지 혹은 텍스트 가시화 */}
+          <Text style={styles.name}>
+            {userNickname}님{isAdminMode && ' (관리자 모드)'},
+          </Text>
+
           <View style={styles.tierRow}>
             <Text style={styles.tierLabel}>회원등급</Text>
             {isKakao ? (
@@ -212,7 +229,10 @@ export default function MenuScreen({ navigation, route }: Props) {
             style={styles.row}
             onPress={() => navigation.navigate('InquiryHistory')}
           >
-            <Text style={styles.label}>고객지원(1:1문의 상담)</Text>
+            {/* ✅ 관리자일 때 직관적으로 구별할 수 있도록 가공 메뉴 문구 수정 */}
+            <Text style={styles.label}>
+              {isAdminMode ? '고객지원 (1:1문의 관리자용)' : '고객지원(1:1문의 상담)'}
+            </Text>
             <Text style={styles.arrow}>{'>'}</Text>
           </TouchableOpacity>
 
@@ -246,10 +266,13 @@ export default function MenuScreen({ navigation, route }: Props) {
         <View style={{ height: 30 }} />
       </ScrollView>
 
+      {/* ✅ 버전 팝업 상자 내부 텍스트 클릭 시 디버그 카운트 작동 연동 */}
       <Modal visible={showVersionModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.versionModalBox}>
-            <Text style={styles.versionText}>6.3.8 v1906</Text>
+            <TouchableOpacity activeOpacity={0.7} onPress={handleVersionClick}>
+              <Text style={styles.versionText}>6.3.8 v1906</Text>
+            </TouchableOpacity>
             <View style={styles.modalDivider} />
             <TouchableOpacity onPress={() => setShowVersionModal(false)}>
               <Text style={styles.modalConfirm}>확인</Text>

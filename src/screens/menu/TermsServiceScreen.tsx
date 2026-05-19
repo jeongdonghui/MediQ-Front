@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
+  Alert, // ✅ 관리자 액션 테스트를 위해 추가
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // ✅ 관리자 상태 감지를 위해 추가
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ServiceTerms'>;
 
@@ -27,18 +29,53 @@ function TermItem({
 }
 
 export default function TermsServiceScreen({ navigation }: Props) {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // ✅ 마운트 시 관리자 모드 체크
+  useEffect(() => {
+    async function checkAdminRole() {
+      try {
+        const role = await AsyncStorage.getItem('userRole');
+        if (role === 'ADMIN') {
+          setIsAdmin(true);
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+    checkAdminRole();
+  }, []);
+
+  // ✅ 관리자 전용 새 약관 등록 핸들러
+  const handleCreateTerm = () => {
+    Alert.alert('관리자 기능', '새로운 서비스 이용약관 등록 폼으로 이동하거나 팝업을 띄우는 지점입니다.');
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
+      {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.sideBtn}>
           <Text style={styles.back}>{'<'}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.title}>서비스 이용약관</Text>
+        {/* ✅ 관리자일 때 헤더 타이틀 문구 분기 처리 */}
+        <Text style={styles.title}>
+          {isAdmin ? '이용약관 관리 (관리자)' : '서비스 이용약관'}
+        </Text>
 
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.sideBtn}>
-          <Text style={styles.close}>X</Text>
-        </TouchableOpacity>
+        {/* ----------------------------------------------------
+            🔥 관리자 모드 UI 분기 처리 영역 (헤더 우측 버튼)
+            ---------------------------------------------------- */}
+        {isAdmin ? (
+          <TouchableOpacity onPress={handleCreateTerm} style={styles.adminAddBtn}>
+            <Text style={styles.adminAddText}>＋</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.sideBtn}>
+            <Text style={styles.close}>X</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.content}>
@@ -99,5 +136,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9CA3AF',
     fontWeight: '500',
+  },
+
+  /* ✅ 관리자 전용 추가 스타일셋 */
+  adminAddBtn: {
+    width: 36,
+    height: 36,
+    backgroundColor: '#EEF4FF',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#CFE0FF',
+  },
+  adminAddText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#6EA8FF',
+    marginTop: -2, // 플러스 기호 수직 보정
   },
 });
