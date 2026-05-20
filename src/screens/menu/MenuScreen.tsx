@@ -111,7 +111,11 @@ export default function MenuScreen({ navigation, route }: Props) {
           </TouchableOpacity>
 
           <View style={styles.headerIcons}>
-
+            <Image
+              source={require('../../assets/home/icon_bell_red.png')}
+              style={styles.icon}
+              resizeMode="contain"
+            />
             <Image
               source={require('../../assets/home/icon_menu.png')}
               style={styles.icon}

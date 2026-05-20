@@ -157,7 +157,9 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
             <Text style={styles.leftBack}>{'‹'}</Text>
           </TouchableOpacity>
           <View style={styles.headerRight}>
-
+            <TouchableOpacity onPress={() => navigation.navigate('Notification')}>
+              <Image source={require('../../assets/home/icon_bell_red.png')} style={styles.bellIcon} resizeMode="contain" />
+            </TouchableOpacity>
           </View>
         </View>
 

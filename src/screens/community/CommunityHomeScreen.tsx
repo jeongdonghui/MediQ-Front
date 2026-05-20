@@ -140,7 +140,9 @@ export default function CommunityHomeScreen({ navigation, route }: Props) {
             <Image source={require('../../assets/home/icon_home.png')} style={styles.homeIcon} resizeMode="contain" />
           </TouchableOpacity>
           <View style={styles.headerRight}>
-
+            <TouchableOpacity onPress={() => navigation.navigate('Notification')}>
+              <Image source={require('../../assets/home/icon_bell_red.png')} style={styles.bellIcon} resizeMode="contain" />
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('CommunityCategory')}>
               <Text style={styles.back}>{'‹'}</Text>
             </TouchableOpacity>

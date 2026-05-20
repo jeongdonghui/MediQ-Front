@@ -153,8 +153,13 @@ export default function HomeScreen({ navigation }: Props) {
             <View style={styles.heroCircle} />
 
             <View style={styles.heroTopIcons}>
-
-
+              <TouchableOpacity style={styles.topIconBtn} onPress={() => navigation.navigate('Notification')}>
+                <Image
+                  source={require('../../assets/home/icon_bell_red.png')}
+                  style={styles.topIcon}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.topIconBtn}
                 onPress={() =>
