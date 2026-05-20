@@ -26,54 +26,77 @@
 ,,,,,,
 [유저 정보 관리: /api/users],,,,,,
 [AI 보조 문진 관리: /api/reports],,,,,,
-새 보조 문진 생성 (AI 분석 요청),"{
+프론트엔드 → 백엔드 → AI(분석 요청),"{
 ""body_input_data"": {
-""step_1_main_area"": ""HEAD"",           // 1. 2D 인체모델 대분류
-""step_2_detailed_region"": ""FACE"",     // 2. 부위별 상세분류
-""step_3_sub_region"": ""FOREHEAD"",      // 3. 상세 소분류
-
-// Step 4: 조립형/선택형 객체
+""step_1_main_area"": ""머리/얼굴"",
+""step_2_detailed_region"": ""머리"",
+""step_3_sub_region"": ""두부"",
 ""step_4_symptom"": {
-""type"": ""THROBBING"",                // 선택된 증상 값 (Enum 권장)
-""is_other"": true,                   // 기타 옵션 선택 여부 (boolean)
-""other_symptom_detail"": ""머리가 지끈지끈하고 눈 주변이 뻐근해요"" // 텍스트
+""type"": ""머리가 깨질 듯이 아파요"",
+""is_other"": false,
+""other_symptom_detail"": null
 },
-
-""step_5_pain_range"": ""LOCALIZED"",     // 5. 통증 범위
-""step_6_intensity"": 7,                // 6. 통증 강도 (integer, 1~10)
-""step_7_onset_time"": ""TODAY""          // 7. 발생 시점
+""step_5_pain_range"": ""LOCALIZED"",
+""step_6_intensity"": 7,
+""step_7_onset_time"": ""TODAY""
 }
-}
-",POST,유저 증상 데이터를 서버에 저장하고 AI 분석을 요청함,/api/reports,YES,"생성 완료 후 GET /api/calendar 호출 시 자동 등록된 일정 확인 가능
+}",POST,유저 증상 데이터를 서버에 저장하고 AI 분석을 요청함,/api/reports,YES,"생성 완료 후 GET /api/calendar 호출 시 자동 등록된 일정 확인 가능
 
 • 최상단 루트에 body_input_data 객체를 열고 데이터를 넣어야 합니다.
 • step_4_symptom 항목 또한 내부에 또 다른 객체(type, is_other, other_symptom_detail)로 구성된 중첩 JSON 구조입니다."
-내 보조 문진 전체 조회,"[
+보조 문진 기록 목록 조회,"[
 {
 ""id"": 1,
-""major_category"": ""Abdomen"",
-""minor_category"": ""Epigastrium"",
+""major_category"": ""머리/얼굴"",
+""minor_category"": ""머리"",
 ""pain_intensity"": 7,
-""createdDate"": ""2026-04-21T01:30:00""
+""createdDate"": ""2026-04-21T01:50:00""
+},
+{
+""id"": 2,
+""major_category"": ""복부"",
+""minor_category"": ""상복부"",
+""pain_intensity"": 4,
+""createdDate"": ""2026-05-01T09:30:00""
 }
-]
-",GET,로그인한 유저의 과거 진단 기록 목록 반환,/api/reports,YES,"리스트 내부 아이템 목록에서 mainSymptom 필드가 삭제되고 major_category, minor_category로 교체되었습니다.
+]",GET,로그인한 유저의 과거 진단 기록 목록 반환,/api/reports,YES,"리스트 내부 아이템 목록에서 mainSymptom 필드가 삭제되고 major_category, minor_category로 교체되었습니다.
 
 "
-보조 문진 상세 조회 (결과 확인용),"{
+백엔드 → 프론트엔드 (문진 상세 조회) (결과 화면),"{
 ""id"": 1,
-""mainSymptom"": ""머리가 지끈지끈하고 눈 주변이 뻐근해요"", // step 4의 구어체 또는 사용자가 입력한 기타 서술형 텍스트 추출
+""mainSymptom"": ""머리가 깨질 듯이 아파요"",
 ""painIntensity"": 7,
-""symptomArea"": ""HEAD FACE"",                       // step 1(대분류)과 step 2(소분류) 텍스트를 결합한 부위 명칭
-""symptomDuration"": ""TODAY"",                       // step 7 데이터
-""additionalSymptom"": ""FOREHEAD"",                  // step 3 데이터
-""aiAnalysisResult"": ""[감기] 관련 진료과: 내과\n설명: 해당 증상은 코비드 바이러스로 인한..."", // AI 분석 텍스트 합본
+""symptomArea"": ""머리/얼굴 머리"",
+""symptomDuration"": ""TODAY"",
+""additionalSymptom"": ""두부"",
+""aiAnalysisResult"": ""[편두통] 관련 진료과: 신경과\n설명: 머리 한쪽이 심하게 욱신욱신 쑤시는 두통이에요..."",
 ""createdAt"": ""2026-04-21T01:50:00""
-}
-",GET,"특정 리포트의 상세 정보 및 AI 분석 결과(병명, 진료과, 약 등) 반환",/api/reports/{reportId},YES,• 변경 사항 (Response Body): 조회 시에도 위에서 저장한 7가지 필드로 반환하도록 응답값이 교체되었습니다. isAiAnalysisComplete 및 질병 예측 정보 등 하단 AI 필드들은 기존과 동일합니다.
+}",GET,"특정 리포트의 상세 정보 및 AI 분석 결과(병명, 진료과, 약 등) 반환",/api/reports/{reportId},YES,• 변경 사항 (Response Body): 조회 시에도 위에서 저장한 7가지 필드로 반환하도록 응답값이 교체되었습니다. isAiAnalysisComplete 및 질병 예측 정보 등 하단 AI 필드들은 기존과 동일합니다.
 보조 문진 삭제,,DELETE,특정 진단 기록 삭제,/api/reports/{reportId},YES,
 AI 피드백 제출,,POST,AI 분석 결과에 대한 유저 피드백(좋아요 등) 저장,/api/reports/{reportId}/feedback,,
-,,,,,,
+"[프론트엔드에 추가 X / 참고용] AI 서버 → 백엔드 (내부 통신)  <- AI 서버 엔드포인트 ","// 백엔드가 AI 서버로 보내는 값
+{
+""reportId"": 1,
+""step_1_main_area"": ""머리/얼굴"",
+""step_2_detailed_region"": ""머리"",
+""step_3_sub_region"": ""두부"",
+""step_4_symptom"": ""머리가 깨질 듯이 아파요"",
+""is_free_text"": false,
+""step_5_pain_range_code"": ""LOCALIZED"",
+""step_5_pain_range"": ""국소 통증"",
+""step_6_intensity_value"": 7,
+""step_7_onset_time_code"": ""TODAY"",
+""step_7_onset_time"": ""오늘""
+}
+
+// AI 서버가 백엔드로 돌려주는 값
+{
+""reportId"": 1,
+""diseaseName"": ""편두통"",
+""department"": ""신경과"",
+""riskLevel"": ""일반"",
+""recommendedMedicines"": """"
+}",POST,백엔드가 AI 서버로 보내는 값 / AI 서버가 백엔드로 돌려주는 값,/analyze,,
 [1:1 문의 관련: /api/inquiries],,,,,,
 1:1 문의 생성,"(multipart/form-data)
 - category: ""DIAGNOSIS"" (단일 문자열)
@@ -137,57 +160,100 @@ AI 피드백 제출,,POST,AI 분석 결과에 대한 유저 피드백(좋아요 
 { ""id"": 1, ""recordDate"": ""YYYY-MM-DD"", ""stepCount"": 0, ""calories"": 0, ""distanceMeters"": 0.0 }",GET,파라미터(date)로 전달된 날짜의 건강 기록 데이터를 조회 (파라미터 없이 호출 시 기본값으로 '오늘' 날짜를 조회),/api/health/daily?date=YYYY-MM-DD,YES,
 ,,,,,,
 [캘린더(증상 트래킹): /api/calendar],,,,,,
-캘린더 수동 이벤트 등록,"{ ""title"": ""..."", ""startDate"": ""YYYY-MM-DD"", ""endDate"": ""..."" }",POST,"'약 복용', '병원 진료' 등 일반 일정 수동 등록",/api/calendar,YES,"수동 등록이라 reportId, color 파라미터 제외됨 (서버가 색상 랜덤 배정)"
-월별 캘린더 조회,"
-• Query Parameters:
-    ◦ year: 년도 (예: 2026)
-    ◦ month: 월 (예: 4)
-• Response Body (응답 형태):
-    ◦ 지정한 월에 해당하는 모든 이벤트들이 배열(List) 형태로 반환됩니다.
+캘린더 수동 이벤트 등록,"Request Body (JSON)
+{
+""title"": ""편두통 증상"",
+""startDate"": ""2026-12-03T18:00:00"",
+""endDate"": ""2026-12-03T19:00:00"",
+""memo"": ""머리 오른쪽이 욱신거리고 약을 먹어도 차도가 없음. (수동 작성 메모)""
+}
+• 참고: endDate나 memo는 선택 값(null 가능)으로 넘겨도 무방합니다.
 
+Response (JSON)
+{
+""id"": 12,
+""title"": ""편두통 증상"",
+""startDate"": ""2026-12-03T18:00:00"",
+""endDate"": ""2026-12-03T19:00:00"",
+""memo"": ""머리 오른쪽이 욱신거리고 약을 먹어도 차도가 없음. (수동 작성 메모)"",
+""reportId"": null,
+""color"": ""yellow"",
+""majorCategory"": null,
+""minorCategory"": null,
+""symptomExpression"": null,
+""painRange"": null,
+""painIntensity"": null,
+""onsetTime"": null,
+""additionalNotes"": null,
+""recommendedDepartment"": null
+}",POST,"'약 복용', '병원 진료' 등 일반 일정 수동 등록",/api/calendar,YES,"수동 등록이라 reportId, color 파라미터 제외됨 (서버가 색상 랜덤 배정)"
+월별 캘린더 조회,"Response (JSON Array)
 [
 {
-""id"": 105,
-""title"": ""[감기]"",                          // AI 분석 결과로 추출된 병명 (수동 등록일 땐 사용자가 직접 입력한 제목)
-""startDate"": ""2026-04-21"",                 // 발생(기록) 일자
-""endDate"": null,                           // 자동 등록된 증상 기록의 경우 endDate는 null
-""reportId"": 1,                             // 연결된 보조 문진 기록의 고유 ID
-""color"": ""blue"",                           // 캘린더 UI 표시 색상
-
-// --- 아래부터는 보조 문진 카드 뷰를 위한 상세 진단 데이터 (reportId가 있는 경우에만 값 반환) ---
-""majorCategory"": ""HEAD"",                   // 1단계: 2D 인체모델 파트
-""minorCategory"": ""FACE"",                   // 2단계: 부위별 상세 분류
-""additionalNotes"": ""FOREHEAD"",             // 3단계: 부위별 상세 소분류 (이마, 정수리 등)
-""symptomExpression"": ""머리가 지끈지끈하고 눈 주변이 뻐근해요"", // 4단계: 선택된 구어체 증상 혹은 서술형 기타 증상
-""painRange"": ""LOCALIZED"",                  // 5단계: 통증 범위
-""painIntensity"": 7,                        // 6단계: 통증 강도
-""onsetTime"": ""TODAY"",                      // 7단계: 발생 시점
-
-""recommendedDepartment"": ""내과""            // AI가 덧붙인 추천 진료과 데이터
-}
-]
-",GET,특정 월의 사용자 모든 이벤트 및 증상카드 한 번에 조회,/api/calendar/month,YES,
-캘린더 이벤트 상세 조회,"{
-""id"": 105,
-""title"": ""[감기]"",
-""startDate"": ""2026-04-21"",
+""id"": 12,
+""title"": ""편두통 증상"",
+""startDate"": ""2026-12-03T18:00:00"",
+""endDate"": ""2026-12-03T19:00:00"",
+""memo"": ""머리 오른쪽이 욱신거리고 약을 먹어도 차도가 없음. (수동 작성 메모)"",
+""reportId"": null,
+""color"": ""yellow"",
+// ... 생략 ...
+},
+{
+""id"": 10,
+""title"": ""상기도 감염"",
+""startDate"": ""2026-12-01T14:30:00"",
 ""endDate"": null,
-""reportId"": 1,
+""memo"": null,
+""reportId"": 45,
 ""color"": ""blue"",
-
-""majorCategory"": ""HEAD"",
-""minorCategory"": ""FACE"",
-""additionalNotes"": ""FOREHEAD"",
-""symptomExpression"": ""머리가 지끈지끈하고 눈 주변이 뻐근해요"",
-""painRange"": ""LOCALIZED"",
-""painIntensity"": 7,
-""onsetTime"": ""TODAY"",
-
-""recommendedDepartment"": ""내과""
+// ... (AI 분석 리포트 연동 필드 값들) ...
 }
-",GET,단건 캘린더 이벤트 조회,/api/calendar/{id},YES,• 캘린더 목록 중 하나를 클릭해 상세 카드를 열었을 때 반환되는 단건 데이터입니다. 필드 구성은 위 월별 조회 객체 구조와 100% 동일합니다.
-캘린더 이벤트 수정,"{ ""title"": ""..."", ""startDate"": ""YYYY-MM-DD"", ""endDate"": ""..."" }",PUT,"특정 수동 이벤트 제목, 기간 수정",/api/calendar/{id},YES,AI가 자동으로 생성한 '증상 카드' 이벤트는 수정 불가능 (400 예외 발생)
-캘린더 이벤트 삭제,,DELETE,특정 캘린더 이벤트 삭제,/api/calendar/{id},YES,
+]",GET,특정 월의 사용자 모든 이벤트 및 증상카드 한 번에 조회,/api/calendar/calendar?year=2026&month=12,YES,
+캘린더 이벤트 상세 조회,"👉 케이스 A: 수동으로 등록한 일정인 경우 (reportId가 null) 사용자가 직접 지정한 시간(startDate, endDate)과 memo 값이 채워져서 옵니다.
+{
+""id"": 12,
+""title"": ""편두통 증상"",
+""startDate"": ""2026-12-03T18:00:00"",
+""endDate"": ""2026-12-03T19:00:00"",
+""memo"": ""머리 오른쪽이 욱신거리고 약을 먹어도 차도가 없음."",
+""reportId"": null,
+""color"": ""yellow"",
+""majorCategory"": null,
+""minorCategory"": null,
+""symptomExpression"": null,
+""painRange"": null,
+""painIntensity"": null,
+""onsetTime"": null,
+""additionalNotes"": null,
+""recommendedDepartment"": null
+}
+👉 케이스 B: AI 분석으로 자동 생성된 카드인 경우 (reportId가 존재함) 수동 메모(memo)는 비어있는 대신, 문진했던 결과 항목들(majorCategory, painIntensity 등)과 추천 진료과(recommendedDepartment)가 채워져서 옵니다
+{
+""id"": 10,
+""title"": ""상기도 감염"",
+""startDate"": ""2026-12-01T14:30:00"",
+""endDate"": null,
+""memo"": null,
+""reportId"": 45,
+""color"": ""blue"",
+""majorCategory"": ""머리/얼굴"",
+""minorCategory"": ""코"",
+""symptomExpression"": ""콧물이 계속 나고 열이 나요"",
+""painRange"": ""LOCALIZED"",
+""painIntensity"": 5,
+""onsetTime"": ""TODAY"",
+""additionalNotes"": ""오한"",
+""recommendedDepartment"": ""이비인후과""
+}",GET,단건 캘린더 이벤트 조회,/api/calendar/{eventId},YES,• 캘린더 목록 중 하나를 클릭해 상세 카드를 열었을 때 반환되는 단건 데이터입니다. 필드 구성은 위 월별 조회 객체 구조와 100% 동일합니다.
+캘린더 이벤트 수정,"Request Body (JSON)
+{
+""title"": ""수정된 제목"",
+""startDate"": ""2026-12-03T18:30:00"",
+""endDate"": ""2026-12-03T20:00:00"",
+""memo"": ""시간과 메모 내용을 수정했습니다.""
+}",PUT,"특정 수동 이벤트 제목, 기간 수정",/api/calendar/{eventId},YES,AI가 자동으로 생성한 '증상 카드' 이벤트는 수정 불가능 (400 예외 발생)
+캘린더 이벤트 삭제,,DELETE,특정 캘린더 이벤트 삭제,/api/calendar/{eventId},YES,
 ,,,,,,
 [게시판 관련: /api/community/boards],,,,,,
 게시판 목록 조회,"[ { ""categoryGroup"": ""피부"", ""boards"": [...] } ]",GET,카테고리 그룹별 게시판 목록 조회,/api/community/boards,No,"• 모든 POST/PUT 요청 시 multipart/form-data를 사용하는 API는 JSON 데이터를 postCreateRequest, commentCreateRequest 라는 파트(String)로 받습니다.
@@ -210,4 +276,19 @@ AI 피드백 제출,,POST,AI 분석 결과에 대한 유저 피드백(좋아요 
 투표 설정 수정,"{ ""resultVisibility"": ""ALWAYS"", ""autoCloseType"": ""DATE"" }",PUT,투표 마감 시간/인원 등 설정 변경,/api/community/posts/{postId}/polls,YES,
 투표 삭제,path: postId,DELETE,게시글 내 투표 삭제,/api/community/posts/{postId}/polls,YES,
 ,,,,,,
+,,,,,,
+상비약 조회,"{
+""diseaseName"": ""편두통"",
+""scenario"": ""한쪽 머리 욱신거림·구역감"",
+""medicines"": [
+{ ""rank"": 1, ""ingredientName"": ""이부프로펜 (Ibuprofen)"" },
+{ ""rank"": 2, ""ingredientName"": ""아세트아미노펜 (Acetaminophen)"" },
+{ ""rank"": 3, ""ingredientName"": ""나프록센 (Naproxen)"" }
+],
+""caution"": ""공복 복용 금지. 반복 시 신경과 상담 필요""
+}",GET,"
+질환명이 DB에 없으면 404 반환
+처방 필수 질환은 ingredientName에 ""처방 필수"" 문구 포함 → 프론트 분기 처리
+
+",/api/medicines?diseaseName={질환명},,
 ,,,,,,

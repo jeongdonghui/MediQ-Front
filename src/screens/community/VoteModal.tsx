@@ -1,155 +1,161 @@
 import React, { useState } from 'react';
 import {
-  Modal,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   TextInput,
+  Modal,
 } from 'react-native';
 
-export type VoteData = {
-  title: string;
-  options: string[];
-  multi: boolean;
-  anonymous: boolean;
-};
-
-type Props = {
+// 부모 컴포넌트(WriteScreen)와 데이터를 주고받기 위한 명확한 타입 인터페이스 정의
+interface VoteModalProps {
   visible: boolean;
   onClose: () => void;
-  onSubmit: (vote: VoteData) => void;
-};
+  onConfirm: (voteData: {
+    title: string;
+    options: string[];
+    multi: boolean;
+    anonymous: boolean;
+  }) => void;
+}
 
-export default function VoteModal({ visible, onClose, onSubmit }: Props) {
-  const [title, setTitle] = useState('');
-  const [date1, setDate1] = useState('2025년 12월 1일 (월)');
-  const [date2, setDate2] = useState('2025년 12월 2일 (화)');
-  const [date3, setDate3] = useState('');
-  const [multi, setMulti] = useState(false);
-  const [anonymous, setAnonymous] = useState(true);
-  const [allowAdd, setAllowAdd] = useState(false);
+const TEXT = '#222222';
 
-  const handleSubmit = () => {
-    const options = [date1, date2, date3].map((v) => v.trim()).filter(Boolean);
+export default function VoteModal({ visible, onClose, onConfirm }: VoteModalProps) {
+  const [voteType, setVoteType] = useState<'복수' | '단일'>('복수');
+  const [voteTitle, setVoteTitle] = useState('');
+  const [voteOption1, setVoteOption1] = useState('');
+  const [voteOption2, setVoteOption2] = useState('');
+  const [voteOption3, setVoteOption3] = useState('');
+  const [allowMulti, setAllowMulti] = useState(true);
+  const [allowAnonymous, setAllowAnonymous] = useState(false);
+  const [allowExtra, setAllowExtra] = useState(false);
 
-    if (!title.trim()) return;
-    if (options.length < 2) return;
+  // 완료 버튼 터치 시 부모에게 규격에 맞는 데이터 구조를 안전하게 전달
+  const handleDone = () => {
+    const options = [voteOption1, voteOption2, voteOption3]
+      .map((v) => v.trim())
+      .filter(Boolean);
 
-    onSubmit({
-      title: title.trim(),
+    onConfirm({
+      title: voteTitle.trim(),
       options,
-      multi,
-      anonymous,
+      multi: voteType === '복수' && allowMulti,
+      anonymous: allowAnonymous,
     });
 
-    setTitle('');
-    setDate1('2025년 12월 1일 (월)');
-    setDate2('2025년 12월 2일 (화)');
-    setDate3('');
-    setMulti(false);
-    setAnonymous(true);
-    setAllowAdd(false);
+    // 데이터 전달 후 초기화 및 모달 닫기
     onClose();
   };
 
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.overlay}>
-        <View style={styles.modalSheet}>
-          <View style={styles.header}>
+      <View style={styles.modalOverlay}>
+        <View style={styles.voteSheet}>
+          <View style={styles.voteHeader}>
             <TouchableOpacity onPress={onClose}>
-              <Text style={styles.sideText}>취소</Text>
+              <Text style={styles.voteClose}>✕</Text>
             </TouchableOpacity>
 
-            <Text style={styles.title}>12월</Text>
+            <Text style={styles.voteHeaderTitle}>투표 만들기</Text>
 
-            <TouchableOpacity onPress={handleSubmit}>
-              <Text style={styles.doneText}>확인</Text>
+            <TouchableOpacity onPress={handleDone}>
+              <Text style={styles.voteDone}>완료</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.voteTypeRow}>
+            <TouchableOpacity
+              style={[
+                styles.voteTypeChip,
+                voteType === '복수' && styles.voteTypeChipActive,
+              ]}
+              onPress={() => setVoteType('복수')}
+            >
+              <Text
+                style={[
+                  styles.voteTypeChipText,
+                  voteType === '복수' && styles.voteTypeChipTextActive,
+                ]}
+              >
+                복수
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.voteTypeChip,
+                voteType === '단일' && styles.voteTypeChipActive,
+              ]}
+              onPress={() => setVoteType('단일')}
+            >
+              <Text
+                style={[
+                  styles.voteTypeChipText,
+                  voteType === '단일' && styles.voteTypeChipTextActive,
+                ]}
+              >
+                단일
+              </Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.formBox}>
-            <View style={styles.chipRow}>
-              <TouchableOpacity
-                style={[styles.chip, multi && styles.chipDark]}
-                onPress={() => setMulti(true)}
-              >
-                <Text style={[styles.chipText, multi && styles.chipTextWhite]}>
-                  복수
-                </Text>
-              </TouchableOpacity>
+          <TextInput
+            value={voteTitle}
+            onChangeText={setVoteTitle}
+            placeholder="투표 제목"
+            placeholderTextColor="#B7B7B7"
+            style={styles.voteInput}
+          />
 
-              <TouchableOpacity
-                style={[styles.chip, !multi && styles.chipDark]}
-                onPress={() => setMulti(false)}
-              >
-                <Text style={[styles.chipText, !multi && styles.chipTextWhite]}>
-                  단일
-                </Text>
-              </TouchableOpacity>
-            </View>
+          <TextInput
+            value={voteOption1}
+            onChangeText={setVoteOption1}
+            placeholder="선택지 1"
+            placeholderTextColor="#B7B7B7"
+            style={styles.voteInput}
+          />
 
-            <TextInput
-              style={styles.input}
-              placeholder="투표 제목"
-              placeholderTextColor="#B4B4B4"
-              value={title}
-              onChangeText={setTitle}
-            />
+          <TextInput
+            value={voteOption2}
+            onChangeText={setVoteOption2}
+            placeholder="선택지 2"
+            placeholderTextColor="#B7B7B7"
+            style={styles.voteInput}
+          />
 
-            <TextInput
-              style={styles.input}
-              value={date1}
-              onChangeText={setDate1}
-            />
+          <TextInput
+            value={voteOption3}
+            onChangeText={setVoteOption3}
+            placeholder="선택지 추가"
+            placeholderTextColor="#B7B7B7"
+            style={styles.voteInput}
+          />
 
-            <TextInput
-              style={styles.input}
-              value={date2}
-              onChangeText={setDate2}
-            />
+          <TouchableOpacity
+            style={styles.radioRow}
+            onPress={() => setAllowMulti((prev) => !prev)}
+          >
+            <Text style={styles.radioIcon}>{allowMulti ? '●' : '○'}</Text>
+            <Text style={styles.radioText}>복수선택 허용</Text>
+          </TouchableOpacity>
 
-            <TextInput
-              style={styles.input}
-              placeholder="날짜 선택"
-              placeholderTextColor="#B4B4B4"
-              value={date3}
-              onChangeText={setDate3}
-            />
+          <TouchableOpacity
+            style={styles.radioRow}
+            onPress={() => setAllowAnonymous((prev) => !prev)}
+          >
+            <Text style={styles.radioIcon}>{allowAnonymous ? '●' : '○'}</Text>
+            <Text style={styles.radioText}>익명 투표</Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity style={styles.addRow}>
-              <Text style={styles.addText}>+ 항목 추가</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.radioRow}
-              onPress={() => setMulti((prev) => !prev)}
-            >
-              <Text style={styles.radioIcon}>{multi ? '●' : '○'}</Text>
-              <Text style={styles.radioText}>복수선택</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.radioRow}
-              onPress={() => setAnonymous((prev) => !prev)}
-            >
-              <Text style={styles.radioIcon}>{anonymous ? '●' : '○'}</Text>
-              <Text style={styles.radioText}>익명 투표</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.radioRow}
-              onPress={() => setAllowAdd((prev) => !prev)}
-            >
-              <Text style={styles.radioIcon}>{allowAdd ? '●' : '○'}</Text>
-              <Text style={styles.radioText}>선택항목 추가 허용</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-              <Text style={styles.submitBtnText}>투표 추가하기</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.radioRow}
+            onPress={() => setAllowExtra((prev) => !prev)}
+          >
+            <Text style={styles.radioIcon}>{allowExtra ? '●' : '○'}</Text>
+            <Text style={styles.radioText}>선택항목 추가 허용</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -157,131 +163,87 @@ export default function VoteModal({ visible, onClose, onSubmit }: Props) {
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.38)',
     justifyContent: 'flex-end',
   },
-
-  modalSheet: {
+  voteSheet: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
-    paddingTop: 10,
     paddingHorizontal: 14,
+    paddingTop: 10,
     paddingBottom: 18,
   },
-
-  header: {
-    height: 44,
+  voteHeader: {
+    height: 42,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
-
-  sideText: {
+  voteClose: {
     fontSize: 14,
     color: '#666666',
     fontWeight: '700',
   },
-
-  title: {
-    fontSize: 18,
-    color: '#111111',
+  voteHeaderTitle: {
+    fontSize: 17,
+    color: TEXT,
     fontWeight: '900',
   },
-
-  doneText: {
+  voteDone: {
     fontSize: 14,
     color: '#5B9BF7',
     fontWeight: '800',
   },
-
-  formBox: {
-    marginTop: 10,
-  },
-
-  chipRow: {
+  voteTypeRow: {
     flexDirection: 'row',
-    marginBottom: 10,
+    marginTop: 10,
+    marginBottom: 12,
   },
-
-  chip: {
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#E5E7EB',
-    paddingHorizontal: 10,
+  voteTypeChip: {
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#E8EDF5',
+    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 6,
   },
-
-  chipDark: {
-    backgroundColor: '#111111',
+  voteTypeChipActive: {
+    backgroundColor: '#5D9BEA',
   },
-
-  chipText: {
-    fontSize: 11,
-    color: '#555555',
+  voteTypeChipText: {
+    fontSize: 12,
+    color: '#55708F',
     fontWeight: '800',
   },
-
-  chipTextWhite: {
+  voteTypeChipTextActive: {
     color: '#FFFFFF',
   },
-
-  input: {
+  voteInput: {
     height: 42,
+    backgroundColor: '#F6F8FC',
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
     paddingHorizontal: 12,
     fontSize: 13,
-    color: '#111827',
+    color: '#666666',
     marginBottom: 8,
   },
-
-  addRow: {
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-
-  addText: {
-    fontSize: 12,
-    color: '#A0A0A0',
-    fontWeight: '700',
-  },
-
   radioRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 7,
   },
-
   radioIcon: {
     width: 22,
     fontSize: 14,
     color: '#6B7280',
   },
-
   radioText: {
     fontSize: 12,
     color: '#666666',
-  },
-
-  submitBtn: {
-    marginTop: 14,
-    height: 42,
-    borderRadius: 10,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  submitBtnText: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

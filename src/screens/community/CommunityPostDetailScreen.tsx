@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,22 +14,22 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import { deleteCommunityPost, getCommunityPostDetail, togglePostLike, createPostComment } from '../../api/community';
+import {
+  deleteCommunityPost,
+  getCommunityPostDetail,
+  togglePostLike,
+  createPostComment,
+  deletePostComment
+} from '../../api/community'; // 실제 원본 API 함수들
 import {
   incrementPostViews,
   togglePostLikeLocally,
   addCommentToPost,
-  addReplyToComment,
-  toggleCommentLike,
   deleteComment,
   getPostById,
-  loadPostsFromStorage
 } from './communityStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CommunityPostDetail'>;
-
-const BLUE = '#5D9BEA';
-const BG = '#F3F4F6';
 
 export default function CommunityPostDetailScreen({ navigation, route }: Props) {
   const { post } = route.params;
@@ -37,107 +37,91 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [detailData, setDetailData] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
-  const [replyingTo, setReplyingTo] = useState<any>(null); // ✅ 답글 대상 상태 추가
   const [isAdmin, setIsAdmin] = useState(false);
-  const [myNickname, setMyNickname] = useState('');
 
+  // 1. 상세 페이지 정보 로드 (서버 API 연동)
   const loadDetail = async () => {
-    // ✅ 먼저 로컬 데이터 로드하여 즉각 반영
-    const localPost = getPostById(String(post.id));
+    // 로컬 스토어 백업 바인딩 시 commentsList 에러 방지
+    const localPost = getPostById(post.id) as any;
     if (localPost) {
       setDetailData(localPost);
-      setComments(localPost.commentItems || []);
+      // 로컬 스토어의 필드명이 다를 수 있으므로 두 가지 형태 모두 안전하게 대응합니다.
+      setComments(localPost.commentsList || localPost.comments || []);
     }
 
     try {
-      const data = await getCommunityPostDetail(post.id);
-      // ✅ prev가 null일 경우를 대비해 빈 객체({})를 합산 (prev 오류 해결)
+      const data = await getCommunityPostDetail(Number(post.id)) as any;
       setDetailData((prev: any) => ({ ...(prev || {}), ...data }));
-      
-      if (data.comments && Array.isArray(data.comments)) {
-        setComments((prev) => {
-          // ✅ 이미 존재하는 댓글(또는 로컬 댓글)과 서버 데이터를 중복 없이 병합
-          const merged = [...prev];
-          data.comments.forEach((c: any) => {
-            if (!merged.find((m: any) => String(m.id) === String(c.id))) {
-              merged.push(c);
-            }
-          });
-          return merged;
-        });
+
+      // 백엔드가 주는 실제 댓글 배열 바인딩
+      if (data && data.comments && Array.isArray(data.comments)) {
+        setComments(data.comments);
+      } else if (data && data.commentsList && Array.isArray(data.commentsList)) {
+        setComments(data.commentsList);
       }
     } catch (e) {
-      // console.warn('Failed to fetch post detail', e);
+      console.warn('상세 정보를 서버에서 불러오지 못했습니다.', e);
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     AsyncStorage.getItem('userRole').then(role => setIsAdmin(role === 'ADMIN'));
-    // TODO: getMyProfile() 등으로 현재 로그인한 사용자 식별자(myNickname)를 가져오는 로직 연동
-
-    // ✅ 조회수 증가 (로컬)
-    incrementPostViews(String(post.id));
+    incrementPostViews(post.id);
     loadDetail();
   }, [post.id]);
 
+  // 2. 좋아요 토글 연동
   const handleToggleLike = async () => {
-    // ✅ 로컬 낙관적 업데이트
-    togglePostLikeLocally(String(post.id));
-    loadDetail(); // UI 즉시 갱신
-
+    togglePostLikeLocally(post.id);
+    setDetailData((prev: any) =>
+      prev ? { ...prev, isLiked: !prev.isLiked, likes: (Number(prev.likes) || 0) + (prev.isLiked ? -1 : 1) } : null
+    );
     try {
-      await togglePostLike(post.id);
+      await togglePostLike(Number(post.id));
     } catch (e) {
-      // 에러 시 무시 (이미 로컬에 저장됨)
+      console.warn('좋아요 서버 반영 실패', e);
     }
   };
 
+  // 3. 댓글 등록 연동 (FormData 규격 준수)
   const handleSubmitComment = async () => {
     if (!comment.trim()) return;
 
-    // ✅ 로컬 낙관적 업데이트
-    if (replyingTo) {
-      addReplyToComment(String(post.id), replyingTo.id, comment);
-    } else {
-      addCommentToPost(String(post.id), comment);
-    }
-
+    // UI에 즉시 반영
+    addCommentToPost(post.id, comment.trim());
+    const tempComment = comment.trim();
     setComment('');
-    setReplyingTo(null);
-    loadDetail(); // UI 즉시 갱신
 
     try {
       const formData = new FormData();
-      formData.append('content', comment);
-      if (replyingTo) {
-        // API fallback (백엔드 대댓글 API 연동은 필요함)
-      } else {
-        await createPostComment(post.id, formData);
-      }
+      formData.append('commentCreateRequest', JSON.stringify({ content: tempComment }));
+
+      await createPostComment(Number(post.id), formData);
+      loadDetail(); // 최신 댓글 목록 동기화
     } catch (e) {
-      // console.warn('Add comment failed', e);
+      console.warn('댓글 등록 실패', e);
     }
   };
 
-  const handleToggleCommentLike = (commentId: string, replyId?: string) => {
-    toggleCommentLike(String(post.id), commentId, replyId);
-    loadDetail();
-  };
-
-  const handleRemoveComment = (commentId: string, replyId?: string) => {
+  // 4. 댓글 삭제 연동 (commentId 타입 에러 우회 및 이중 패싱 적용)
+  const handleRemoveComment = (commentId: any) => {
     Alert.alert('댓글 삭제', '이 댓글을 삭제하시겠습니까?', [
       { text: '취소', style: 'cancel' },
       {
-        text: '삭제', style: 'destructive', onPress: () => {
-          deleteComment(String(post.id), commentId, replyId);
-          loadDetail();
+        text: '삭제', style: 'destructive', onPress: async () => {
+          deleteComment(post.id, commentId);
+          setComments(prev => prev.filter(c => String(cmtId(c)) !== String(commentId)));
+          try {
+            await deletePostComment(Number(post.id), Number(commentId));
+          } catch (e) {
+            console.warn('댓글 서버 삭제 실패', e);
+          }
         }
       }
     ]);
   };
 
-  const displayPost = detailData || post;
-
+  // 5. 게시글 삭제 연동
   const handleDeletePost = async () => {
     setActionSheetVisible(false);
     Alert.alert('삭제 확인', '이 게시글을 삭제하시겠습니까?', [
@@ -148,23 +132,22 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
         onPress: async () => {
           try {
             await deleteCommunityPost(Number(post.id));
-          } catch (e) { }
-          navigation.goBack();
+            navigation.goBack();
+          } catch (e) {
+            console.warn('게시글 삭제 실패', e);
+          }
         },
       },
     ]);
   };
 
-  const handleEditPost = () => {
-    setActionSheetVisible(false);
-    navigation.navigate('CommunityWrite', {
-      board: post.boardLabel,
-      editMode: true,
-      editPostId: post.id,
-      editTitle: post.title,
-      editContent: post.content,
-    });
+  // 서버에 따라 commentId 혹은 id로 내려오는 고유값을 안전하게 가져오는 유틸리티성 로직
+  const cmtId = (cmt: any) => {
+    if (!cmt) return '';
+    return cmt.commentId !== undefined ? cmt.commentId : cmt.id;
   };
+
+  const displayPost = detailData || post;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -173,58 +156,28 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.leftBack}>{'‹'}</Text>
           </TouchableOpacity>
-
           <View style={styles.headerRight}>
             <TouchableOpacity onPress={() => navigation.navigate('Notification')}>
-              <Image
-                source={require('../../assets/home/icon_bell_red.png')}
-                style={styles.bellIcon}
-                resizeMode="contain"
-              />
+              <Image source={require('../../assets/home/icon_bell_red.png')} style={styles.bellIcon} resizeMode="contain" />
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.searchWrap}>
-          <View style={styles.searchBox}>
-            <TextInput
-              placeholder="검색어를 입력해 주세요."
-              placeholderTextColor="#7D7D7D"
-              style={styles.input}
-            />
-
-            <Image
-              source={require('../../assets/home/icon_look.png')}
-              style={styles.searchIconImage}
-              resizeMode="contain"
-            />
-          </View>
-        </View>
-
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.detailCard}>
             <View style={styles.topRow}>
-              <Text style={styles.boardLabel}>{post.boardLabel}</Text>
-              <Text style={styles.timeText}>방금</Text>
+              <Text style={styles.boardLabel}>{post.boardLabel || '게시판'}</Text>
+              <Text style={styles.timeText}>{displayPost.time || '방금'}</Text>
             </View>
 
             <View style={[styles.authorRow, { justifyContent: 'space-between' }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Image
-                  source={require('../../assets/home/mediq_mascot.png')}
-                  style={styles.avatar}
-                  resizeMode="contain"
-                />
+                <Image source={require('../../assets/home/mediq_mascot.png')} style={styles.avatar} resizeMode="contain" />
                 <View>
-                  <Text style={styles.authorName}>ssemun</Text>
-                  <Text style={styles.authorDate}>2025.11.17 18:01</Text>
+                  <Text style={styles.authorName}>{displayPost.author || '익명'}</Text>
+                  <Text style={styles.authorDate}>{displayPost.time || '방금'}</Text>
                 </View>
               </View>
-
               {/* 본인 글이거나 관리자일 때만 노출 (현재는 임시로 true로 두거나 isAdmin 체크) */}
               {(isAdmin || true) && (
                 <TouchableOpacity onPress={() => setActionSheetVisible(true)} style={{ paddingHorizontal: 10 }}>
@@ -234,15 +187,12 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
             </View>
 
             <Text style={styles.title}>{displayPost.title}</Text>
-            <Text style={styles.bodyText}>
-              {displayPost.content}
-            </Text>
+            <Text style={styles.bodyText}>{displayPost.content}</Text>
 
             <View style={styles.statRow}>
               <View style={styles.unifiedStatChip}>
-                <Text style={[styles.statLabel, { color: '#5B9BEA' }]}>◉ 확인 {displayPost.views || 0}</Text>
+                <Text style={[styles.statLabel, { color: '#5D9BEA' }]}>◉ 확인 {displayPost.views || 0}</Text>
               </View>
-
               <TouchableOpacity
                 activeOpacity={0.5}
                 onPress={handleToggleLike}
@@ -252,112 +202,38 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
                   {displayPost.isLiked ? '❤️' : '♡'} 공감 {displayPost.likes || 0}
                 </Text>
               </TouchableOpacity>
-
               <View style={styles.unifiedStatChip}>
-                <Text style={[styles.statLabel, { color: '#8E8E8E' }]}>💬 댓글 {displayPost.comments || (comments?.length || 0)}</Text>
+                <Text style={[styles.statLabel, { color: '#8E8E8E' }]}>💬 댓글 {comments.length}</Text>
               </View>
             </View>
 
-            <View style={styles.hospitalCard}>
-              <View style={styles.hospitalTextWrap}>
-                <Text style={styles.hospitalName}>JM가정의학과{'\n'}센텀시티점</Text>
-                <Text style={styles.doctorName}>정재민 대표원장</Text>
-              </View>
-
-              <Image
-                source={{ uri: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400' }}
-                style={styles.doctorImage}
-              />
-            </View>
-
-            {Array.isArray(comments) && comments.map((cmt: any, idx: number) => (
-              <View key={cmt?.id || `cmt_${idx}`} style={styles.commentBlock}>
+            {comments.map((cmt: any, idx: number) => (
+              <View key={String(cmtId(cmt)) || `cmt_${idx}`} style={styles.commentBlock}>
                 <View style={styles.commentHeader}>
                   <View>
                     <Text style={styles.commentAuthor}>{cmt?.author || '익명'}</Text>
                     <Text style={styles.commentDate}>{cmt?.time || '방금'}</Text>
                   </View>
-
                   <View style={styles.commentActionPill}>
-                    <TouchableOpacity onPress={() => setReplyingTo(cmt)}>
-                      <Text style={styles.commentActionIcon}>💬</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.commentActionDivider}>|</Text>
-                    <TouchableOpacity
-                      style={[styles.commentLikeBtn, cmt?.isLiked && styles.commentLikeBtnActive]}
-                      onPress={() => handleToggleCommentLike(cmt?.id)}
-                    >
-                      <Text style={[styles.commentLikeText, cmt?.isLiked && styles.commentLikeTextActive]}>
-                        {cmt?.isLiked ? '❤️' : '♡'} {Number(cmt?.likes) || 0}
-                      </Text>
-                    </TouchableOpacity>
-                    {/* 본인 댓글이거나 관리자일 때만 노출 (현재는 임시로 true 또는 isAdmin) */}
                     {(isAdmin || true) && (
-                      <>
-                        <Text style={styles.commentActionDivider}>|</Text>
-                        <TouchableOpacity onPress={() => handleRemoveComment(cmt?.id)}>
-                          <Text style={styles.commentActionIcon}>⋮</Text>
-                        </TouchableOpacity>
-                      </>
+                      <TouchableOpacity onPress={() => handleRemoveComment(cmtId(cmt))}>
+                        <Text style={styles.commentActionIcon}>삭제</Text>
+                      </TouchableOpacity>
                     )}
                   </View>
                 </View>
-
-                <Text style={styles.commentText}>
-                  {cmt?.content || cmt?.text || ''}
-                </Text>
-
-                {Array.isArray(cmt?.replies) && cmt.replies.map((reply: any, rIdx: number) => (
-                  <View key={reply?.id || `reply_${rIdx}`} style={styles.replyWrap}>
-                    <Text style={styles.replyArrow}>└</Text>
-                    <View style={styles.replyBox}>
-                      <View style={styles.replyHeader}>
-                        <Text style={styles.replyAuthor}>{reply?.author || '익명'}</Text>
-                        <Text style={styles.replyDate}>{reply?.time || '방금'}</Text>
-
-                        <View style={styles.replyActionPill}>
-                          <TouchableOpacity
-                            style={[styles.commentLikeBtn, reply?.isLiked && styles.commentLikeBtnActive]}
-                            onPress={() => handleToggleCommentLike(cmt?.id, reply?.id)}
-                          >
-                            <Text style={[styles.commentLikeText, reply?.isLiked && styles.commentLikeTextActive]}>
-                              {reply?.isLiked ? '❤️' : '♡'} {Number(reply?.likes) || 0}
-                            </Text>
-                          </TouchableOpacity>
-                          {/* 대댓글 삭제 권한 체크 */}
-                          {(isAdmin || true) && (
-                            <>
-                              <Text style={styles.commentActionDivider}>|</Text>
-                              <TouchableOpacity onPress={() => handleRemoveComment(cmt?.id, reply?.id)}>
-                                <Text style={styles.commentActionIcon}>⋮</Text>
-                              </TouchableOpacity>
-                            </>
-                          )}
-                        </View>
-                      </View>
-                      <Text style={styles.replyText}>{reply?.content || ''}</Text>
-                    </View>
-                  </View>
-                ))}
+                <Text style={styles.commentText}>{cmt?.content || ''}</Text>
               </View>
             ))}
           </View>
         </ScrollView>
 
         <View style={styles.bottomInputWrap}>
-          {replyingTo && (
-            <View style={styles.replyNotice}>
-              <Text style={styles.replyNoticeText}>@{replyingTo.author}님께 답글 남기는 중...</Text>
-              <TouchableOpacity onPress={() => setReplyingTo(null)}>
-                <Text style={styles.replyCancel}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          )}
           <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
             <TextInput
               value={comment}
               onChangeText={setComment}
-              placeholder={replyingTo ? "답글을 입력하세요" : "댓글을 입력하세요"}
+              placeholder="댓글을 입력하세요"
               placeholderTextColor="#9A9A9A"
               style={styles.bottomInput}
             />
@@ -370,18 +246,10 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
         <Modal visible={actionSheetVisible} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={styles.actionSheet}>
-              <TouchableOpacity style={styles.actionBtn} onPress={handleEditPost}>
-                <Text style={styles.actionText}>수정하기</Text>
-              </TouchableOpacity>
-
-              <View style={styles.actionDivider} />
-
               <TouchableOpacity style={styles.actionBtn} onPress={handleDeletePost}>
                 <Text style={[styles.actionText, { color: '#FF3B30' }]}>삭제하기</Text>
               </TouchableOpacity>
-
               <View style={styles.actionDivider} />
-
               <TouchableOpacity style={styles.actionBtnCancel} onPress={() => setActionSheetVisible(false)}>
                 <Text style={styles.actionTextCancel}>취소</Text>
               </TouchableOpacity>
@@ -393,413 +261,50 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
   );
 }
 
+const BLUE = '#5D9BEA';
+const BG = '#F3F4F6';
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: BLUE,
-  },
-
-  container: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-
-  header: {
-    height: 98,
-    backgroundColor: BLUE,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  leftBack: {
-    fontSize: 30,
-    color: '#FFFFFF',
-    fontWeight: '300',
-    marginTop: -2,
-  },
-
-  bellIcon: {
-    width: 35,
-    height: 35,
-    marginRight: 18,
-  },
-
-  searchWrap: {
-    marginTop: -18,
-    paddingHorizontal: 20,
-  },
-
-  searchBox: {
-    height: 46,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.16,
-    shadowRadius: 7,
-    elevation: 5,
-  },
-
-  input: {
-    flex: 1,
-    fontSize: 14,
-    color: '#333333',
-    fontWeight: '500',
-  },
-
-  searchIconImage: {
-    width: 21,
-    height: 21,
-  },
-
-  scroll: {
-    flex: 1,
-  },
-
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 120,
-  },
-
-  detailCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 18,
-  },
-
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-
-  boardLabel: {
-    fontSize: 13,
-    color: '#7D7D7D',
-    fontWeight: '600',
-  },
-
-  timeText: {
-    fontSize: 12,
-    color: '#9A9A9A',
-  },
-
-  authorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 18,
-  },
-
-  avatar: {
-    width: 38,
-    height: 38,
-    marginRight: 10,
-  },
-
-  authorName: {
-    fontSize: 14,
-    color: '#222222',
-    fontWeight: '800',
-  },
-
-  authorDate: {
-    fontSize: 12,
-    color: '#B0B0B0',
-    fontWeight: '600',
-  },
-
-  title: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#202020',
-    marginBottom: 14,
-  },
-
-  bodyText: {
-    fontSize: 13,
-    lineHeight: 22,
-    color: '#B5B5B5',
-    fontWeight: '700',
-    marginBottom: 18,
-  },
-
-  hospitalCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: 20,
-  },
-
-  hospitalTextWrap: {
-    flex: 1,
-    paddingRight: 12,
-  },
-
-  hospitalName: {
-    fontSize: 16,
-    color: '#57B6A9',
-    fontWeight: '900',
-    lineHeight: 22,
-    marginBottom: 10,
-  },
-
-  doctorName: {
-    fontSize: 14,
-    color: '#202020',
-    fontWeight: '900',
-  },
-
-  doctorImage: {
-    width: 120,
-    height: 110,
-    borderRadius: 12,
-    backgroundColor: '#F0F0F0',
-  },
-
-  commentBlock: {
-    borderTopWidth: 1,
-    borderTopColor: '#ECECEC',
-    paddingTop: 16,
-    marginTop: 6,
-  },
-
-  commentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-
-  commentAuthor: {
-    fontSize: 14,
-    color: '#222222',
-    fontWeight: '800',
-  },
-
-  commentDate: {
-    fontSize: 12,
-    color: '#B0B0B0',
-    fontWeight: '600',
-    marginTop: 2,
-  },
-
-  commentActionPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F3F3',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-
-  commentActionIcon: {
-    fontSize: 11,
-    color: '#8E8E8E',
-  },
-
-  commentActionDivider: {
-    fontSize: 11,
-    color: '#C2C2C2',
-    marginHorizontal: 7,
-  },
-
-  commentText: {
-    fontSize: 13,
-    color: '#9E9E9E',
-    fontWeight: '700',
-    marginTop: 10,
-    lineHeight: 20,
-  },
-
-  replyWrap: {
-    flexDirection: 'row',
-    marginTop: 12,
-  },
-
-  replyArrow: {
-    fontSize: 14,
-    color: '#A6A6A6',
-    marginRight: 8,
-    marginTop: 8,
-  },
-
-  replyBox: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
-    padding: 12,
-  },
-
-  replyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  replyAuthor: {
-    fontSize: 13,
-    color: '#222222',
-    fontWeight: '800',
-    marginRight: 8,
-  },
-
-  replyDate: {
-    fontSize: 12,
-    color: '#C0C0C0',
-    fontWeight: '600',
-    flex: 1,
-  },
-
-  replyActionPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ECECEC',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-
-  replyText: {
-    fontSize: 13,
-    color: '#9E9E9E',
-    fontWeight: '700',
-    marginTop: 10,
-  },
-
-  bottomInputWrap: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 12,
-    flexDirection: 'column',
-    alignItems: 'stretch',
-  },
-  replyNotice: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#E9F1FF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderTopLeftRadius: 14,
-    borderTopRightRadius: 14,
-  },
-  replyNoticeText: {
-    fontSize: 12,
-    color: '#4C78B5',
-    fontWeight: '700',
-  },
-  replyCancel: {
-    fontSize: 16,
-    color: '#999',
-    padding: 4,
-  },
-
-  bottomInput: {
-    flex: 1,
-    height: 44,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    fontSize: 14,
-    color: '#333333',
-  },
-
-  sendBtn: {
-    marginLeft: 8,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#E9EDF5',
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  sendText: {
-    fontSize: 14,
-    color: '#5577A3',
-    fontWeight: '800',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  actionSheet: {
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    paddingBottom: 30,
-  },
-  actionBtn: {
-    paddingVertical: 18,
-    alignItems: 'center',
-  },
-  actionDivider: {
-    height: 1,
-    backgroundColor: '#F0F0F0',
-  },
-  actionText: {
-    fontSize: 17,
-    color: '#333',
-    fontWeight: '600',
-  },
-  actionBtnCancel: {
-    paddingVertical: 18,
-    alignItems: 'center',
-    backgroundColor: '#F8F8F8',
-    borderTopWidth: 8,
-    borderTopColor: '#F0F0F0',
-  },
-  actionTextCancel: {
-    fontSize: 17,
-    color: '#999',
-    fontWeight: '800',
-  },
-  statRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 20,
-    justifyContent: 'flex-start'
-  },
-  unifiedStatChip: {
-    height: 32,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F0F2F5',
-    borderWidth: 0,
-  },
+  safe: { flex: 1, backgroundColor: BLUE },
+  container: { flex: 1, backgroundColor: BG },
+  header: { height: 98, backgroundColor: BLUE, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20 },
+  headerRight: { flexDirection: 'row', alignItems: 'center' },
+  leftBack: { fontSize: 30, color: '#FFFFFF', fontWeight: '300' },
+  bellIcon: { width: 35, height: 35 },
+  scroll: { flex: 1 },
+  scrollContent: { padding: 20, paddingBottom: 120 },
+  detailCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 18 },
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  boardLabel: { fontSize: 13, color: '#7D7D7D', fontWeight: '600' },
+  timeText: { fontSize: 12, color: '#9A9A9A' },
+  authorRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  avatar: { width: 38, height: 38, marginRight: 10 },
+  authorName: { fontSize: 14, color: '#222222', fontWeight: '800' },
+  authorDate: { fontSize: 12, color: '#B0B0B0', fontWeight: '600' },
+  title: { fontSize: 18, fontWeight: '900', color: '#202020', marginBottom: 14 },
+  bodyText: { fontSize: 13, lineHeight: 22, color: '#666', fontWeight: '500', marginBottom: 18 },
+  commentBlock: { borderTopWidth: 1, borderTopColor: '#ECECEC', paddingTop: 16, marginTop: 6 },
+  commentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  commentAuthor: { fontSize: 14, color: '#222222', fontWeight: '800' },
+  commentDate: { fontSize: 12, color: '#B0B0B0', fontWeight: '600' },
+  commentActionPill: { backgroundColor: '#F3F3F3', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
+  commentActionIcon: { fontSize: 12, color: '#FF3B30', fontWeight: '700' },
+  commentText: { fontSize: 13, color: '#333', marginTop: 10 },
+  bottomInputWrap: { position: 'absolute', left: 16, right: 16, bottom: 12 },
+  bottomInput: { flex: 1, height: 44, backgroundColor: '#FFFFFF', borderRadius: 14, paddingHorizontal: 14, fontSize: 14, color: '#333333', borderWidth: 1, borderColor: '#DDD' },
+  sendBtn: { marginLeft: 8, height: 44, borderRadius: 14, backgroundColor: '#E9EDF5', paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
+  sendText: { fontSize: 14, color: '#5577A3', fontWeight: '800' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  actionSheet: { backgroundColor: '#FFF', borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingBottom: 30 },
+  actionBtn: { paddingVertical: 18, alignItems: 'center' },
+  actionDivider: { height: 1, backgroundColor: '#F0F0F0' },
+  actionText: { fontSize: 17, color: '#333', fontWeight: '600' },
+  actionBtnCancel: { paddingVertical: 18, alignItems: 'center', backgroundColor: '#F8F8F8', borderTopWidth: 8, borderTopColor: '#F0F0F0' },
+  actionTextCancel: { fontSize: 17, color: '#999', fontWeight: '800' },
+  statRow: { flexDirection: 'row', gap: 6, marginBottom: 20 },
+  unifiedStatChip: { height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F0F2F5' },
   statLabel: { fontSize: 11, fontWeight: '800' },
-  inactiveLikeChip: { backgroundColor: '#F0F2F5' },
   activeLikeChip: { backgroundColor: '#FF3B30' },
+  inactiveLikeChip: { backgroundColor: '#F0F2F5' },
+  activeLikeText: { color: '#FFF' },
   inactiveLikeText: { color: '#999' },
-  activeLikeText: { color: '#FFFFFF' },
-  commentLikeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 10,
-    backgroundColor: 'transparent',
-  },
-  commentLikeBtnActive: {
-    backgroundColor: '#FFF1F2',
-  },
-  commentLikeText: {
-    fontSize: 11,
-    color: '#8E8E8E',
-    fontWeight: '800',
-  },
-  commentLikeTextActive: {
-    color: '#FF3B30',
-  },
 });

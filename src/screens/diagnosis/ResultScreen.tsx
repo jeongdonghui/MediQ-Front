@@ -1,143 +1,343 @@
 // src/screens/diagnosis/ResultScreen.tsx
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import { getReportDetail } from '../../api/reports';
+
+import {
+  getReportDetail,
+  deleteReport,
+  submitAiFeedback,
+} from '../../api/reports';
+
 import { createCalendarEvent } from '../../api/calendar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Result'>;
 
 export default function ResultScreen({ navigation, route }: Props) {
   const { summary, reportId } = route.params;
+
   const [isSaved, setIsSaved] = useState(false);
+
   const [apiReport, setApiReport] = useState<any>(null);
 
-  React.useEffect(() => {
-    if (reportId) {
-      getReportDetail(reportId)
-        .then(res => setApiReport(res))
-        .catch(err => console.warn('Failed to fetch detailed report', err));
-    }
+  const [loading, setLoading] = useState(true);
+
+  // ✅ 상세조회 API
+  useEffect(() => {
+    const fetchReport = async () => {
+      try {
+        if (!reportId) {
+          setLoading(false);
+          return;
+        }
+
+        const res = await getReportDetail(reportId);
+
+        console.log('상세 리포트 조회 성공:', res);
+
+        setApiReport(res);
+      } catch (err) {
+        console.warn('리포트 상세조회 실패:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReport();
   }, [reportId]);
 
-  const goOTC = () => navigation.navigate('OTCMedicine', { suspected: summary.suspected });
-  const goPharmacy = () => navigation.navigate('PharmacyMap', { query: '약국' });
+  // ✅ 상비약 이동
+  const goOTC = () => {
+    navigation.navigate('OTCMedicine', {
+      suspected: summary.suspected,
+    });
+  };
 
+  // ✅ 병원찾기 이동
+  const goPharmacy = () => {
+    navigation.navigate('PharmacyMap', {
+      query: '약국',
+    });
+  };
+
+  // ✅ 캘린더 등록 API
   const registerToCalendar = async () => {
     try {
-      setIsSaved(true); // 버튼 비활성화를 위해 먼저 세팅 (에러 시 다시 되돌림)
-      
-      // ✅ 서버에 등록 시도 (엄격한 에러 처리 적용)
       await createCalendarEvent({
         title: summary.suspected,
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date().toISOString().split('T')[0],
         type: 'DIAGNOSIS',
       });
-      
-      Alert.alert('등록 완료', '진단 결과가 달력에 등록되었습니다.', [
-        { 
-          text: '확인', 
-          onPress: () => navigation.navigate('Calendar', { 
-            newDiagnosis: {
-              id: Date.now().toString(),
-              date: new Date().toISOString(),
-              summary: {
-                ...summary,
-                bodyPartLabel: summary.bodyPartLabel || '진단 내역'
-              },
-              type: 'DIAGNOSIS'
-            }
-          }) 
-        }
-      ]);
-    } catch (e: any) {
-      setIsSaved(false); // 실패 시 버튼 다시 활성화
-      console.error('Failed to save diagnosis record to API', e);
-      Alert.alert('등록 실패', '서버와의 통신에 실패했습니다. 다시 시도해 주세요.');
+
+      setIsSaved(true);
+
+      Alert.alert(
+        '등록 완료',
+        '진단 결과가 캘린더에 등록되었습니다.',
+      );
+    } catch (e) {
+      console.warn('캘린더 등록 실패:', e);
+
+      Alert.alert(
+        '등록 실패',
+        '캘린더 등록 중 오류가 발생했습니다.',
+      );
     }
   };
 
+  // ✅ AI 분석 도움됐어요
+  const handleGoodFeedback = async () => {
+    try {
+      if (!reportId) return;
+
+      await submitAiFeedback(reportId, {
+        feedbackType: 'GOOD',
+      });
+
+      Alert.alert('감사합니다!', '피드백이 제출되었습니다.');
+    } catch (e) {
+      console.warn('좋아요 피드백 실패:', e);
+    }
+  };
+
+  // ✅ AI 분석 별로예요
+  const handleBadFeedback = async () => {
+    try {
+      if (!reportId) return;
+
+      await submitAiFeedback(reportId, {
+        feedbackType: 'BAD',
+      });
+
+      Alert.alert('의견 감사합니다.', '개선에 반영하겠습니다.');
+    } catch (e) {
+      console.warn('별로예요 피드백 실패:', e);
+    }
+  };
+
+  // ✅ 보조문진 삭제 API
+  const handleDeleteReport = () => {
+    Alert.alert(
+      '보조문진 삭제',
+      '정말 삭제하시겠습니까?',
+      [
+        {
+          text: '취소',
+          style: 'cancel',
+        },
+        {
+          text: '삭제',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (!reportId) return;
+
+              await deleteReport(reportId);
+
+              Alert.alert(
+                '삭제 완료',
+                '보조문진이 삭제되었습니다.',
+                [
+                  {
+                    text: '확인',
+                    onPress: () => navigation.popToTop(),
+                  },
+                ],
+              );
+            } catch (e) {
+              console.warn('보조문진 삭제 실패:', e);
+
+              Alert.alert(
+                '삭제 실패',
+                '삭제 중 오류가 발생했습니다.',
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingWrap}>
+        <ActivityIndicator size="large" color="#3B82F6" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
+      {/* 상단 */}
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => navigation.pop()} style={styles.topBtn}>
+        <TouchableOpacity
+          onPress={() => navigation.pop()}
+          style={styles.topBtn}
+        >
           <Text style={styles.topBtnText}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.topTitle}>종합 분석 결과</Text>
-        <TouchableOpacity onPress={() => navigation.popToTop()} style={styles.topBtn}>
-          <Text style={styles.topRight}>분석 종료</Text>
+
+        <Text style={styles.topTitle}>
+          종합 분석 결과
+        </Text>
+
+        <TouchableOpacity
+          onPress={() => navigation.popToTop()}
+          style={styles.topBtn}
+        >
+          <Text style={styles.topRight}>
+            종료
+          </Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 18, paddingBottom: 120 }}>
+      <ScrollView
+        contentContainerStyle={{
+          padding: 18,
+          paddingBottom: 140,
+        }}
+      >
         <Text style={styles.bigTitle}>
-          {summary?.suspected || '분석 완료'} 증상이{'\n'}의심됩니다.
+          {summary?.suspected || '분석 완료'} 증상이{'\n'}
+          의심됩니다.
         </Text>
 
-        {/* ✅ 의료 번역 리포트 카드(이 카드만 가운데정렬) */}
+        {/* AI 결과 */}
         <View style={styles.card}>
-          <Text style={[styles.cardTitle, styles.centerText]}>의료 번역 리포트</Text>
-
-          <View style={styles.quoteBox}>
-            <Text style={[styles.quoteText, styles.centerText]}>
-              “{summary.bodyPartLabel} 부위가 불편해요.”
-            </Text>
-          </View>
-
-          <Text style={[styles.diagTitle, styles.centerText]}>
-            {summary.suspected} {summary.english ? `(${summary.english})` : ''}
+          <Text style={styles.cardTitle}>
+            의료 번역 리포트
           </Text>
 
-          <Text style={[styles.blueDesc, styles.centerText]}>
-            {apiReport?.aiAnalysisResult || summary.shortExplain}
+          <Text style={styles.diagTitle}>
+            {summary.suspected}
+            {summary.english
+              ? ` (${summary.english})`
+              : ''}
+          </Text>
+
+          <Text style={styles.blueDesc}>
+            {apiReport?.aiAnalysisResult ||
+              summary.shortExplain}
           </Text>
         </View>
 
-        {/* ✅ 의료진에게 보여줄 카드(여긴 그대로) */}
+        {/* 의료진 카드 */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>의료진에게 보여줄 카드</Text>
+          <Text style={styles.cardTitle}>
+            의료진에게 보여줄 카드
+          </Text>
 
-          {summary?.checklist?.map((it: any, i: number) => (
-            <View key={i} style={styles.row}>
-              <Text style={styles.rowLabel}>{it.label}</Text>
-              <Text style={styles.rowValue}>{it.value}</Text>
-            </View>
-          ))}
+          {summary?.checklist?.map(
+            (it: any, i: number) => (
+              <View key={i} style={styles.row}>
+                <Text style={styles.rowLabel}>
+                  {it.label}
+                </Text>
+
+                <Text style={styles.rowValue}>
+                  {it.value}
+                </Text>
+              </View>
+            ),
+          )}
 
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>진료 권장</Text>
-            <Text style={styles.rowValue}>{summary.department}</Text>
-          </View>
+            <Text style={styles.rowLabel}>
+              진료 권장
+            </Text>
 
-          <TouchableOpacity style={styles.smallBtn} onPress={goOTC}>
-            <Text style={styles.smallBtnText}>알맞은 상비약 보러가기</Text>
+            <Text style={styles.rowValue}>
+              {summary.department}
+            </Text>
+          </View>
+        </View>
+
+        {/* 피드백 */}
+        <View style={styles.feedbackRow}>
+          <TouchableOpacity
+            style={styles.feedbackBtn}
+            onPress={handleGoodFeedback}
+          >
+            <Text style={styles.feedbackText}>
+              👍 도움됐어요
+            </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.smallBtn, { backgroundColor: isSaved ? '#E5E7EB' : '#3B82F6', marginTop: 10 }]} 
-            onPress={registerToCalendar}
-            disabled={isSaved}
+          <TouchableOpacity
+            style={styles.feedbackBtn}
+            onPress={handleBadFeedback}
           >
-            <Text style={[styles.smallBtnText, { color: isSaved ? '#9CA3AF' : '#FFF' }]}>
-              {isSaved ? '달력 등록 완료' : '캘린더에 등록하기'}
+            <Text style={styles.feedbackText}>
+              👎 별로예요
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* 기능 버튼 */}
+        <TouchableOpacity
+          style={styles.smallBtn}
+          onPress={goOTC}
+        >
+          <Text style={styles.smallBtnText}>
+            알맞은 상비약 보기
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.smallBtn}
+          onPress={registerToCalendar}
+        >
+          <Text style={styles.smallBtnText}>
+            캘린더 등록
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.deleteBtn}
+          onPress={handleDeleteReport}
+        >
+          <Text style={styles.deleteText}>
+            보조문진 삭제
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
 
-      <TouchableOpacity style={styles.bottomBtn} onPress={goPharmacy}>
-        <Text style={styles.bottomBtnText}>내 주변 병원 찾기</Text>
+      {/* 하단 */}
+      <TouchableOpacity
+        style={styles.bottomBtn}
+        onPress={goPharmacy}
+      >
+        <Text style={styles.bottomBtnText}>
+          내 주변 병원 찾기
+        </Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-const BLUE = '#3B82F6';
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F6F7FB' },
+  container: {
+    flex: 1,
+    backgroundColor: '#F6F7FB',
+  },
+
+  loadingWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
   topBar: {
     height: 52,
@@ -145,59 +345,119 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
   },
-  topBtn: { width: 72 },
-  topBtnText: { fontSize: 26, color: '#111' },
-  topTitle: { flex: 1, textAlign: 'center', fontWeight: '900', color: '#111827' },
-  topRight: { textAlign: 'right', color: BLUE, fontWeight: '900' },
 
-  bigTitle: { fontSize: 20, fontWeight: '900', color: '#111827', marginBottom: 14 },
+  topBtn: {
+    width: 72,
+  },
+
+  topBtnText: {
+    fontSize: 26,
+    color: '#111',
+  },
+
+  topTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontWeight: '900',
+  },
+
+  topRight: {
+    textAlign: 'right',
+    color: '#3B82F6',
+    fontWeight: '900',
+  },
+
+  bigTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    marginBottom: 14,
+  },
 
   card: {
     backgroundColor: '#fff',
     borderRadius: 14,
     padding: 16,
     marginBottom: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
   },
-  cardTitle: { fontSize: 13, fontWeight: '900', color: '#111827', marginBottom: 10 },
 
-  quoteBox: {
-    backgroundColor: '#F2F4F8',
-    padding: 12,
-    borderRadius: 10,
+  cardTitle: {
+    fontSize: 13,
+    fontWeight: '900',
     marginBottom: 10,
-    alignItems: 'center', // ✅ 가운데 느낌 강화
   },
-  quoteText: { color: '#333', fontSize: 13 },
 
-  diagTitle: { fontSize: 16, fontWeight: '900', color: '#2B55FF', marginTop: 6 },
-  blueDesc: { marginTop: 8, color: '#2B55FF', fontSize: 12, lineHeight: 17 },
+  diagTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#2B55FF',
+  },
+
+  blueDesc: {
+    marginTop: 8,
+    color: '#2B55FF',
+    fontSize: 12,
+    lineHeight: 17,
+  },
 
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F1F1',
   },
-  rowLabel: { fontSize: 12, color: '#6B7280' },
-  rowValue: { fontSize: 12, color: '#111827', fontWeight: '900', flexShrink: 1, textAlign: 'right' },
 
-  smallBtn: {
-    marginTop: 14,
+  rowLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+
+  rowValue: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+
+  feedbackRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 14,
+  },
+
+  feedbackBtn: {
+    flex: 1,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#EEF2FF',
-    alignItems: 'center',
+    backgroundColor: '#fff',
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  smallBtnText: { color: '#2B55FF', fontWeight: '900' },
+
+  feedbackText: {
+    fontWeight: '700',
+  },
+
+  smallBtn: {
+    height: 48,
+    borderRadius: 10,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+
+  smallBtnText: {
+    color: '#2B55FF',
+    fontWeight: '900',
+  },
+
+  deleteBtn: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+
+  deleteText: {
+    color: '#EF4444',
+    fontWeight: '700',
+  },
 
   bottomBtn: {
     position: 'absolute',
@@ -206,14 +466,14 @@ const styles = StyleSheet.create({
     bottom: 18,
     height: 54,
     borderRadius: 12,
-    backgroundColor: BLUE,
+    backgroundColor: '#3B82F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bottomBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' },
 
-  // ✅ 추가: 가운데정렬용
-  centerText: {
-    textAlign: 'center',
+  bottomBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '900',
   },
 });

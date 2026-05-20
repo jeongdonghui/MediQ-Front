@@ -94,8 +94,12 @@ export const votePoll = async (postId: string | number, optionIds: number[]) => 
 /**
  * 게시글 수정 (작성자/관리자)
  */
-export const updateCommunityPost = async (postId: string | number, data: { title: string; content: string }) => {
-  const response = await apiClient.put(`/api/community/posts/${postId}`, data);
+export const updateCommunityPost = async (postId: string | number, formData: FormData) => {
+  const response = await apiClient.put(`/api/community/posts/${postId}`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return response.data;
 };
 

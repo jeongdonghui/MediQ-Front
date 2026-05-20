@@ -1,7 +1,6 @@
 // src/screens/signup/CheckInfoScreen.tsx
 import React, { useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform, Alert, ActivityIndicator } from 'react-native';
-import { signup } from '../../api/auth';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
 
 const BLUE = '#3FA2FF';
 const WHITE = '#FFFFFF';
@@ -35,7 +34,6 @@ export default function CheckInfoScreen({ navigation, route }: Props) {
   };
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const openLockRef = useRef(false);
 
   const [allAgree, setAllAgree] = useState(false);
@@ -70,37 +68,18 @@ export default function CheckInfoScreen({ navigation, route }: Props) {
     [termChecks],
   );
 
-  const handleTermsNext = async () => {
+  const handleTermsNext = () => {
     if (isTermsNextDisabled) return;
     setModalVisible(false);
-    setIsLoading(true);
 
-    try {
-      // ✅ 백엔드 명세 규격에 맞게 데이터 가공
-      const signupData = {
-        email: id,
-        name: name,
-        password: password,
-        nickname: nickname,
-        phoneNumber: phone.replace(/-/g, ''), // 하이픈 제거
-        rrn: `${birthFront6}-1000000`, // 뒷자리는 가짜 데이터로 보강 (명세 요구사항 대응)
-        serviceTerms: termChecks[0],
-        privacyPolicy: termChecks[1],
-        marketing: termChecks[4], // 마케팅 동의 필드 매핑
-      };
-
-      await signup(signupData);
-
-      Alert.alert('회원가입 완료', '성공적으로 가입되었습니다. 로그인해 주세요.', [
-        { text: '확인', onPress: () => navigation?.reset({ index: 0, routes: [{ name: 'Login' }] }) }
-      ]);
-    } catch (error: any) {
-      console.error('Signup Error:', error);
-      const errorMsg = error.response?.data?.message || '회원가입 중 오류가 발생했습니다.';
-      Alert.alert('회원가입 실패', errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
+    navigation?.navigate('Splash', {
+      id,
+      password,
+      name,
+      nickname,
+      phone,
+      birthFront6,
+    });
   };
 
   return (
@@ -120,12 +99,6 @@ export default function CheckInfoScreen({ navigation, route }: Props) {
         <InfoItem label="이름" value={name} />
         <InfoItem label="아이디" value={id} />
       </View>
-
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={WHITE} />
-        </View>
-      )}
 
       {!modalVisible && (
         <TouchableOpacity style={styles.nextBar} onPress={handleOpenTerms} activeOpacity={0.8}>
@@ -201,13 +174,6 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BLUE, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 56 },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
   backButton: { paddingVertical: 4, marginBottom: 8 },
   backText: { fontSize: 28, color: WHITE, fontWeight: '500' },
 

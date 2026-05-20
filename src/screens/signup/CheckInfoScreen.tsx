@@ -103,15 +103,13 @@ export default function CheckInfoScreen({ navigation, route }: Props) {
     
     try {
       const signupData = {
-        email: id,
+        loginId: id,
         password: password,
         name: name,
         nickname: nickname,
         phoneNumber: phone,
-        rrn: birthFront6 + birthBack1,
-        serviceTerms: true,
-        privacyPolicy: true,
-        marketing: true,
+        birthDate: birthFront6 ? `19${birthFront6.slice(0, 2)}-${birthFront6.slice(2, 4)}-${birthFront6.slice(4, 6)}` : '', // 임시 매핑
+        gender: birthBack1 === '1' || birthBack1 === '3' ? 'MALE' : 'FEMALE',
       };
       
       await signup(signupData);

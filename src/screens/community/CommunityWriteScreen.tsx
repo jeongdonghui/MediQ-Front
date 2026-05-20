@@ -13,9 +13,9 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import { BOARD_GROUPS, addPost, type VoteInfo } from './communityStore';
+// 스토어 함수를 리팩토링된 이름인 addNewPostLocally로 정확히 변경 매핑합니다.
+import { BOARD_GROUPS, addNewPostLocally } from './communityStore';
 import { createCommunityPost, updateCommunityPost } from '../../api/community';
-
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CommunityWrite'>;
 
@@ -73,7 +73,7 @@ export default function CommunityWriteScreen({ navigation, route }: Props) {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const builtVote: VoteInfo | null = useMemo(() => {
+  const builtVote = useMemo(() => {
     const options = [voteOption1, voteOption2, voteOption3]
       .map((v) => v.trim())
       .filter(Boolean);
@@ -107,7 +107,7 @@ export default function CommunityWriteScreen({ navigation, route }: Props) {
       return;
     }
 
-    // ✅ 게시판 이름 -> ID 맵핑 (BOARD_GROUPS 순서 기준)
+    // 게시판 이름 -> ID 맵핑 (BOARD_GROUPS 순서 기준)
     const allBoardItems = BOARD_GROUPS.flatMap(g => g.items);
     const boardId = allBoardItems.indexOf(selectedBoard) + 1 || 1;
 
@@ -115,13 +115,12 @@ export default function CommunityWriteScreen({ navigation, route }: Props) {
     formData.append(isEdit ? 'postUpdateRequest' : 'postCreateRequest', JSON.stringify({
       title: title.trim(),
       content: content.trim(),
-      boardId: boardId, 
+      boardId: boardId,
     }));
-    // TODO: 이미지 첨부 처리 추가
 
     try {
       if (isEdit && editPostId) {
-        await updateCommunityPost(Number(editPostId), { title: title.trim(), content: content.trim() });
+        await updateCommunityPost(Number(editPostId), formData);
       } else {
         await createCommunityPost(formData);
       }
@@ -129,15 +128,15 @@ export default function CommunityWriteScreen({ navigation, route }: Props) {
       console.warn('API failed, storing to local mock as fallback');
     }
 
-    // fallback/optimistic 업데이트
-    addPost({
+    // [중요 수정] 정렬된 스토어의 addNewPostLocally 양식 파라미터 규격에 완벽 일치하도록 대응
+    await addNewPostLocally({
       category: selectedBoard,
       title: title.trim(),
       content: content.trim(),
       images,
-      vote: builtVote,
     });
 
+    // 화면 이동 시 파라미터 명세 맞춤
     navigation.navigate('CommunityHome', {
       selectedBoard,
     });
@@ -420,21 +419,9 @@ export default function CommunityWriteScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-
-  blueHeader: {
-    height: 84,
-    backgroundColor: BLUE,
-  },
-
-  container: {
-    flex: 1,
-    backgroundColor: BG,
-  },
-
+  safe: { flex: 1, backgroundColor: BG },
+  blueHeader: { height: 84, backgroundColor: BLUE },
+  container: { flex: 1, backgroundColor: BG },
   writeCard: {
     flex: 1,
     marginHorizontal: 18,
@@ -451,33 +438,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-
-  topRow: {
-    height: 28,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
-  },
-
-  closeText: {
-    fontSize: 15,
-    color: TEXT,
-    fontWeight: '700',
-  },
-
-  headerTitle: {
-    fontSize: 18,
-    color: TEXT,
-    fontWeight: '900',
-  },
-
-  doneText: {
-    fontSize: 15,
-    color: BLUE,
-    fontWeight: '900',
-  },
-
+  topRow: { height: 28, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  closeText: { fontSize: 15, color: TEXT, fontWeight: '700' },
+  headerTitle: { fontSize: 18, color: TEXT, fontWeight: '900' },
+  doneText: { fontSize: 15, color: BLUE, fontWeight: '900' },
   boardSelectBox: {
     height: 46,
     borderRadius: 10,
@@ -494,328 +458,53 @@ const styles = StyleSheet.create({
     elevation: 3,
     marginBottom: 18,
   },
-
-  boardPlaceholder: {
-    fontSize: 14,
-    color: '#B6B6B6',
-    fontWeight: '700',
-  },
-
-  boardRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  boardValue: {
-    fontSize: 14,
-    color: '#7A7A7A',
-    fontWeight: '700',
-    marginRight: 8,
-  },
-
-  boardArrow: {
-    fontSize: 14,
-    color: '#A8A8A8',
-  },
-
-  contentArea: {
-    flex: 1,
-  },
-
-  contentContainer: {
-    paddingBottom: 24,
-  },
-
-  titleInput: {
-    fontSize: 18,
-    color: TEXT,
-    fontWeight: '900',
-    paddingVertical: 0,
-    marginBottom: 16,
-  },
-
-  titleDivider: {
-    height: 1,
-    backgroundColor: LINE,
-    marginBottom: 18,
-  },
-
-  bodyInput: {
-    minHeight: 420,
-    fontSize: 13,
-    color: '#9F9F9F',
-    lineHeight: 24,
-    fontWeight: '700',
-    paddingVertical: 0,
-  },
-
-  imageGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-
-  imageWrap: {
-    width: '48.5%',
-    marginBottom: 10,
-    position: 'relative',
-  },
-
-  gridImage: {
-    width: '100%',
-    height: 108,
-    borderRadius: 12,
-    backgroundColor: '#EAEAEA',
-  },
-
-  removeBtn: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(0,0,0,0.52)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  removeBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-  },
-
-  votePreviewCard: {
-    marginTop: 12,
-    backgroundColor: '#F7FAFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E4ECF8',
-    padding: 14,
-  },
-
-  votePreviewTop: {
-    marginBottom: 10,
-  },
-
-  votePreviewTitle: {
-    fontSize: 14,
-    color: '#2E4D79',
-    fontWeight: '900',
-    marginBottom: 8,
-  },
-
-  voteMetaWrap: {
-    flexDirection: 'row',
-  },
-
-  voteMetaChip: {
-    fontSize: 11,
-    color: '#5C8FD6',
-    fontWeight: '800',
-    backgroundColor: '#EAF2FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    marginRight: 6,
-  },
-
-  voteOptionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-
-  voteOptionBullet: {
-    fontSize: 14,
-    color: '#5C8FD6',
-    marginRight: 8,
-  },
-
-  voteOptionText: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '700',
-  },
-
-  bottomToolbar: {
-    height: 56,
-    backgroundColor: WHITE,
-    marginHorizontal: 18,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F1F1',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-  },
-
-  toolBtn: {
-    width: 42,
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-
-  toolImage: {
-    width: 26,
-    height: 26,
-  },
-
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.38)',
-    justifyContent: 'flex-end',
-  },
-
-  boardSheet: {
-    maxHeight: '72%',
-    backgroundColor: WHITE,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 16,
-  },
-
-  sheetHeader: {
-    height: 42,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-
-  sheetClose: {
-    fontSize: 14,
-    color: '#666666',
-    fontWeight: '700',
-  },
-
-  sheetTitle: {
-    fontSize: 16,
-    color: TEXT,
-    fontWeight: '900',
-  },
-
-  sheetSpace: {
-    width: 28,
-  },
-
-  boardOptionRow: {
-    height: 42,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    justifyContent: 'center',
-    marginBottom: 8,
-    backgroundColor: '#F5F5F5',
-  },
-
-  boardOptionRowActive: {
-    backgroundColor: '#E9F1FF',
-  },
-
-  boardOptionText: {
-    fontSize: 13,
-    color: '#666666',
-    fontWeight: '700',
-  },
-
-  boardOptionTextActive: {
-    color: '#4C78B5',
-  },
-
-  voteSheet: {
-    backgroundColor: WHITE,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 18,
-  },
-
-  voteHeader: {
-    height: 42,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-
-  voteClose: {
-    fontSize: 14,
-    color: '#666666',
-    fontWeight: '700',
-  },
-
-  voteHeaderTitle: {
-    fontSize: 17,
-    color: TEXT,
-    fontWeight: '900',
-  },
-
-  voteDone: {
-    fontSize: 14,
-    color: '#5B9BF7',
-    fontWeight: '800',
-  },
-
-  voteTypeRow: {
-    flexDirection: 'row',
-    marginTop: 10,
-    marginBottom: 12,
-  },
-
-  voteTypeChip: {
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#E8EDF5',
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 6,
-  },
-
-  voteTypeChipActive: {
-    backgroundColor: '#5D9BEA',
-  },
-
-  voteTypeChipText: {
-    fontSize: 12,
-    color: '#55708F',
-    fontWeight: '800',
-  },
-
-  voteTypeChipTextActive: {
-    color: '#FFFFFF',
-  },
-
-  voteInput: {
-    height: 42,
-    backgroundColor: '#F6F8FC',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    fontSize: 13,
-    color: '#666666',
-    marginBottom: 8,
-  },
-
-  radioRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 7,
-  },
-
-  radioIcon: {
-    width: 22,
-    fontSize: 14,
-    color: '#6B7280',
-  },
-
-  radioText: {
-    fontSize: 12,
-    color: '#666666',
-    fontWeight: '600',
-  },
+  boardPlaceholder: { fontSize: 14, color: '#B6B6B6', fontWeight: '700' },
+  boardRight: { flexDirection: 'row', alignItems: 'center' },
+  boardValue: { fontSize: 14, color: '#7A7A7A', fontWeight: '700', marginRight: 8 },
+  boardArrow: { fontSize: 14, color: '#A8A8A8' },
+  contentArea: { flex: 1 },
+  contentContainer: { paddingBottom: 24 },
+  titleInput: { fontSize: 18, color: TEXT, fontWeight: '900', paddingVertical: 0, marginBottom: 16 },
+  titleDivider: { height: 1, backgroundColor: LINE, marginBottom: 18 },
+  bodyInput: { minHeight: 420, fontSize: 13, color: '#9F9F9F', lineHeight: 24, fontWeight: '700', paddingVertical: 0 },
+  imageGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 10 },
+  imageWrap: { width: '48.5%', marginBottom: 10, position: 'relative' },
+  gridImage: { width: '100%', height: 108, borderRadius: 12, backgroundColor: '#EAEAEA' },
+  removeBtn: { position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.52)', alignItems: 'center', justifyContent: 'center' },
+  removeBtnText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  votePreviewCard: { marginTop: 12, backgroundColor: '#F7FAFF', borderRadius: 14, borderWidth: 1, borderColor: '#E4ECF8', padding: 14 },
+  votePreviewTop: { marginBottom: 10 },
+  votePreviewTitle: { fontSize: 14, color: '#2E4D79', fontWeight: '900', marginBottom: 8 },
+  voteMetaWrap: { flexDirection: 'row' },
+  voteMetaChip: { fontSize: 11, color: '#5C8FD6', fontWeight: '800', backgroundColor: '#EAF2FF', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, marginRight: 6 },
+  voteOptionRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  voteOptionBullet: { fontSize: 14, color: '#5C8FD6', marginRight: 8 },
+  voteOptionText: { fontSize: 13, color: '#6B7280', fontWeight: '700' },
+  bottomToolbar: { height: 56, backgroundColor: WHITE, marginHorizontal: 18, borderTopWidth: 1, borderTopColor: '#F1F1F1', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 },
+  toolBtn: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  toolImage: { width: 26, height: 26 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.38)', justifyContent: 'flex-end' },
+  boardSheet: { maxHeight: '72%', backgroundColor: WHITE, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 16 },
+  sheetHeader: { height: 42, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  sheetClose: { fontSize: 14, color: '#666666', fontWeight: '700' },
+  sheetTitle: { fontSize: 16, color: TEXT, fontWeight: '900' },
+  sheetSpace: { width: 28 },
+  boardOptionRow: { height: 42, borderRadius: 10, paddingHorizontal: 12, justifyContent: 'center', marginBottom: 8, backgroundColor: '#F5F5F5' },
+  boardOptionRowActive: { backgroundColor: '#E9F1FF' },
+  boardOptionText: { fontSize: 13, color: '#666666', fontWeight: '700' },
+  boardOptionTextActive: { color: '#4C78B5' },
+  voteSheet: { backgroundColor: WHITE, borderTopLeftRadius: 18, borderTopRightRadius: 18, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 18 },
+  voteHeader: { height: 42, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  voteClose: { fontSize: 14, color: '#666666', fontWeight: '700' },
+  voteHeaderTitle: { fontSize: 17, color: TEXT, fontWeight: '900' },
+  voteDone: { fontSize: 14, color: '#5B9BF7', fontWeight: '800' },
+  voteTypeRow: { flexDirection: 'row', marginTop: 10, marginBottom: 12 },
+  voteTypeChip: { height: 28, borderRadius: 14, backgroundColor: '#E8EDF5', paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', marginRight: 6 },
+  voteTypeChipActive: { backgroundColor: '#5D9BEA' },
+  voteTypeChipText: { fontSize: 12, color: '#55708F', fontWeight: '800' },
+  voteTypeChipTextActive: { color: '#FFFFFF' },
+  voteInput: { height: 42, backgroundColor: '#F6F8FC', borderRadius: 10, paddingHorizontal: 12, fontSize: 13, color: '#666666', marginBottom: 8 },
+  radioRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 7 },
+  radioIcon: { width: 22, fontSize: 14, color: '#6B7280' },
+  radioText: { fontSize: 12, color: '#666666', fontWeight: '600' },
 });

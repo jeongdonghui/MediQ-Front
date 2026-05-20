@@ -23,7 +23,6 @@ const GOLD = '#D1B000';
 const WHITE = '#FFFFFF';
 const BG = '#F6F7FB';
 const TEXT = '#111';
-import { Alert } from 'react-native';
 
 interface DiagnosisRecord {
   id: string;
@@ -50,34 +49,40 @@ export default function CalendarScreen() {
   const [activeRecord, setActiveRecord] = useState<DiagnosisRecord | null>(null);
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
 
-  // ✅ 초기 데이터 로드 (mount 시 1회) - 캐시된 데이터가 있으면 먼저 보여줌
+  // ✅ 초기 데이터 로드 (네트워크가 오프라인일 때 가동할 캐시 백업용으로 정비)
   useEffect(() => {
-    const initLocalCache = async () => {
+    let isMounted = true;
+    const initLocalData = async () => {
       try {
-        const stored = await AsyncStorage.getItem('@calendar_records_cache');
-        if (stored) {
+        if (!AsyncStorage) return;
+        const stored = await AsyncStorage.getItem('@calendar_records');
+        if (stored && isMounted) {
           setRecords(JSON.parse(stored));
         }
-      } catch (e) {}
+      } catch (e) { }
     };
-    initLocalCache();
+    initLocalData();
+    return () => { isMounted = false; };
   }, []);
 
-  // ✅ 데이터 변경 시 캐시 업데이트 (선택적)
+  // ✅ 데이터 변경 감지 시 안정적으로 로컬 백업 유지
   useEffect(() => {
-    const updateCache = async () => {
+    const saveLocalData = async () => {
       try {
-        await AsyncStorage.setItem('@calendar_records_cache', JSON.stringify(records));
-      } catch (e) {}
+        if (!AsyncStorage) return;
+        await AsyncStorage.setItem('@calendar_records', JSON.stringify(records));
+      } catch (e) { }
     };
-    if (records.length > 0) updateCache();
+    if (records && records.length > 0) {
+      saveLocalData();
+    }
   }, [records]);
 
+  // ✅ 화면이 포커스되거나 월(Month)이 바뀔 때 백엔드 서버에서 진짜 실시간 데이터 조회 연동
   useEffect(() => {
     if (isFocused) {
       loadRecords();
-      
-      // ✅ 진단 결과 화면에서 넘어온 데이터가 있다면 즉시 반영
+
       const params = (navigation as any).getState()?.routes.find((r: any) => r.name === 'Calendar')?.params;
       if (params?.newDiagnosis) {
         setRecords(prev => {
@@ -85,18 +90,17 @@ export default function CalendarScreen() {
           if (exists) return prev;
           return [...prev, params.newDiagnosis];
         });
-        // ✅ 파라미터가 비어있지 않을 때만 setParams를 호출하여 무한 루프 가능성 차단
         navigation.setParams({ newDiagnosis: undefined });
       }
     }
   }, [isFocused, currentDate]);
 
+  // 🚀 백엔드 월별 데이터 바인딩 연동 정밀 매핑
   const loadRecords = async () => {
     try {
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth() + 1;
       const data = await getCalendarMonthly(year, month);
-      
       if (data && Array.isArray(data)) {
         const mapped = data.map((ev: any) => {
           const sTime = ev.startDate?.includes('T') ? ev.startDate.split('T')[1].substring(0, 5) : '00:00';
@@ -119,12 +123,15 @@ export default function CalendarScreen() {
         setRecords(mapped);
       }
     } catch (e) {
-      console.error('Failed to load calendar events', e);
-      Alert.alert('조회 실패', '서버에서 일정을 가져오는데 실패했습니다.');
+      console.warn('Failed to load calendar events from server', e);
     }
   };
 
+  // 🚀 백엔드 일정 추가 연동 수정 (ID 충돌 및 서버 데이터 동기화 최적화)
   const saveRecord = async (newRecord: any) => {
+    // 1. 화면 반응성을 극대화하기 위해 UI에 먼저 임시 세이브 반영
+    setRecords(prev => [...prev, newRecord]);
+
     const baseDate = newRecord.date.split('T')[0];
     const apiData: CalendarEventRequest = {
       title: newRecord.summary.suspected,
@@ -133,36 +140,38 @@ export default function CalendarScreen() {
       memo: newRecord.summary.shortExplain,
     };
     try {
-      // ✅ 서버 등록 시도
-      const saved = await createCalendarEvent(apiData);
-      
-      // ✅ 서버 성공 시에만 로컬 상태 반영 및 새로고침
-      if (saved) {
-        Alert.alert('등록 완료', '일정이 서버에 저장되었습니다.');
-        loadRecords();
-      }
-    } catch (e: any) {
-      console.error('Save record failed', e);
-      const errorMsg = e.response?.data?.message || '서버 저장 중 오류가 발생했습니다.';
-      Alert.alert('저장 실패', errorMsg);
+      // 백엔드 엔드포인트 수용 스펙에 최적화하여 맵핑
+      const apiData: CalendarEvent = {
+        title: newRecord.summary.suspected,
+        startDate: newRecord.date, // 'YYYY-MM-DDTHH:mm:00' 풀 스트링을 그대로 넘겨 시간 유실 방지
+        endDate: newRecord.date,
+        description: newRecord.summary.shortExplain,
+        type: 'EVENT',
+      };
+
+      // 2. 서버에 저장 요청 전송
+      await createCalendarEvent(apiData);
+
+      // 3. 서버 저장이 완료되면 백엔드 발급 고유 ID를 가져오기 위해 목록을 재갱신(중요)
+      await loadRecords();
+    } catch (e) {
+      console.warn('Failed to save calendar event to server', e);
     }
   };
 
+  // 🚀 백엔드 일정 삭제 연동 수정
   const handleDeleteRecord = async (id: string | number) => {
+    // 1. UI에서 즉시 가차없이 지워서 체감 속도 향상
+    setRecords(prev => prev.filter(r => r.id !== String(id)));
+    setModalVisible(false);
+
     try {
-      // ✅ 서버 삭제 시도
+      // 2. 서버에 실제 데이터 제거 트래픽 요청 연동
       await deleteCalendarEvent(Number(id));
-      
-      // ✅ 서버 삭제 성공 시에만 UI 업데이트
-      setRecords(prev => prev.filter(r => r.id !== String(id)));
-      setActiveRecord(null);
-      setModalVisible(false);
-      Alert.alert('삭제 완료', '일정이 삭제되었습니다.');
-      
-    } catch (e: any) {
-      console.error('Delete failed', e);
-      const errorMsg = e.response?.data?.message || '서버 삭제 중 오류가 발생했습니다.';
-      Alert.alert('삭제 실패', errorMsg);
+    } catch (e) {
+      console.warn('Failed to delete calendar event from server', e);
+      // 서버에서 제거가 안 되었다면 동기화를 위해 백엔드 원본을 다시 로드하여 롤백 보장
+      loadRecords();
     }
   };
 
@@ -184,7 +193,6 @@ export default function CalendarScreen() {
     const totalDays = daysInMonth(year, month);
     const startDay = firstDayOfMonth(year, month);
 
-    // Padding for first week
     for (let i = 0; i < startDay; i++) {
       daysArr.push(<View key={`pad-${i}`} style={styles.dayBox} />);
     }
@@ -192,20 +200,19 @@ export default function CalendarScreen() {
     for (let d = 1; d <= totalDays; d++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const isSelected = selectedDate.getDate() === d && selectedDate.getMonth() === month && selectedDate.getFullYear() === year;
-      
-      // Find bars for this date
+
       const daysBars = records.map(r => {
+        if (!r.date) return null;
         const startDate = new Date(r.date);
-        startDate.setHours(0,0,0,0);
+        startDate.setHours(0, 0, 0, 0);
         const endDate = new Date(r.date);
-        // endDate.setDate(endDate.getDate() + 3); // ❌ 하드코딩된 기간 삭제
-        endDate.setHours(23,59,59,999);
+        endDate.setHours(23, 59, 59, 999);
 
         const targetDate = new Date(year, month, d);
         if (targetDate >= startDate && targetDate <= endDate) {
-            const isStart = targetDate.getTime() === startDate.getTime();
-            const isEnd = targetDate.getDate() === endDate.getDate() && targetDate.getMonth() === endDate.getMonth();
-            return { ...(r as any), isStart, isEnd };
+          const isStart = targetDate.getTime() === startDate.getTime();
+          const isEnd = targetDate.getDate() === endDate.getDate() && targetDate.getMonth() === endDate.getMonth();
+          return { ...(r as any), isStart, isEnd };
         }
         return null;
       }).filter((b): b is any => b !== null);
@@ -222,11 +229,11 @@ export default function CalendarScreen() {
             {daysBars?.map((b, idx) => {
               if (!b) return null;
               return (
-                <View 
-                  key={b.id || idx} 
+                <View
+                  key={b.id || idx}
                   style={[
-                    styles.bar, 
-                    { 
+                    styles.bar,
+                    {
                       backgroundColor: b.type === 'MIGRAINE' ? GREEN : (b.type === 'STOMACH' ? GOLD : (b.type === 'DIAGNOSIS' ? BLUE : '#9CA3AF')),
                       borderTopLeftRadius: b.isStart ? 4 : 0,
                       borderBottomLeftRadius: b.isStart ? 4 : 0,
@@ -235,11 +242,11 @@ export default function CalendarScreen() {
                       marginLeft: b.isStart ? 4 : 0,
                       marginRight: b.isEnd ? 4 : 0,
                     }
-                  ]} 
+                  ]}
                 >
-                    {(b.isStart || d === 1) && (
-                        <Text style={styles.barTitle} numberOfLines={1}>{b.summary?.suspected || '내용 없음'}</Text>
-                    )}
+                  {(b.isStart || d === 1) && (
+                    <Text style={styles.barTitle} numberOfLines={1}>{b.summary?.suspected || '내용 없음'}</Text>
+                  )}
                 </View>
               );
             })}
@@ -251,15 +258,14 @@ export default function CalendarScreen() {
     return daysArr;
   };
 
-  // ✅ 상단 카드는 진단 결과(DIAGNOSIS)만 표시하도록 필터링 (안전한 접근 적용)
   const diagnosisRecords = (records || []).filter(r => r && r.type === 'DIAGNOSIS');
   const lastRecord = diagnosisRecords.length > 0 ? diagnosisRecords[diagnosisRecords.length - 1] : null;
   const filteredRecordsForDate = (records || []).filter(r => {
     if (!r || !r.date) return false;
     const rDate = new Date(r.date);
-    return rDate.getDate() === selectedDate.getDate() && 
-           rDate.getMonth() === selectedDate.getMonth() && 
-           rDate.getFullYear() === selectedDate.getFullYear();
+    return rDate.getDate() === selectedDate.getDate() &&
+      rDate.getMonth() === selectedDate.getMonth() &&
+      rDate.getFullYear() === selectedDate.getFullYear();
   });
 
   return (
@@ -278,8 +284,8 @@ export default function CalendarScreen() {
         {lastRecord ? (
           <View style={styles.summaryCard}>
             <Text style={styles.summaryDate}>
-              {lastRecord.date 
-                ? new Date(lastRecord.date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }) 
+              {lastRecord.date
+                ? new Date(lastRecord.date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })
                 : '날짜 정보 없음'}
             </Text>
             <Text style={styles.summaryTitle}>
@@ -304,7 +310,6 @@ export default function CalendarScreen() {
 
           {viewMode === 'calendar' ? (
             <View style={styles.calendarContainer}>
-              {/* ... existing monthly navigation ... */}
               <View style={styles.monthNav}>
                 <TouchableOpacity onPress={handlePrevMonth}>
                   <Text style={styles.navText}>‹</Text>
@@ -327,28 +332,28 @@ export default function CalendarScreen() {
             </View>
           ) : (
             <View style={styles.listContainer}>
-                {(records || []).slice().reverse().map((r, i) => (
-                    <View key={r?.id || i} style={styles.historyCard}>
-                        <Text style={styles.historyCardTitle}>{r?.summary?.suspected || '제목 없음'}</Text>
-                        <View style={styles.historyDetailRow}>
-                            <Text style={styles.historyLabel}>등록 일자</Text>
-                            <Text style={styles.historyValue}>
-                              {r?.date ? new Date(r.date).toLocaleDateString('ko-KR') : '-'}
-                            </Text>
-                        </View>
-                        <View style={styles.historyDetailRow}>
-                            <Text style={styles.historyLabel}>진단 구분</Text>
-                            <Text style={styles.historyValue}>{r?.type === 'DIAGNOSIS' ? 'AI 리포트' : '직접 등록'}</Text>
-                        </View>
-                    </View>
-                ))}
-                
-                <TouchableOpacity 
-                    style={styles.addRecordBtn}
-                    onPress={() => setAddModalVisible(true)}
-                >
-                    <Text style={styles.addRecordText}>+ 기록 추가하기</Text>
-                </TouchableOpacity>
+              {(records || []).slice().reverse().map((r, i) => (
+                <View key={r?.id || i} style={styles.historyCard}>
+                  <Text style={styles.historyCardTitle}>{r?.summary?.suspected || '제목 없음'}</Text>
+                  <View style={styles.historyDetailRow}>
+                    <Text style={styles.historyLabel}>등록 일자</Text>
+                    <Text style={styles.historyValue}>
+                      {r?.date ? new Date(r.date).toLocaleDateString('ko-KR') : '-'}
+                    </Text>
+                  </View>
+                  <View style={styles.historyDetailRow}>
+                    <Text style={styles.historyLabel}>진단 구분</Text>
+                    <Text style={styles.historyValue}>{r?.type === 'DIAGNOSIS' ? 'AI 리포트' : '직접 등록'}</Text>
+                  </View>
+                </View>
+              ))}
+
+              <TouchableOpacity
+                style={styles.addRecordBtn}
+                onPress={() => setAddModalVisible(true)}
+              >
+                <Text style={styles.addRecordText}>+ 기록 추가하기</Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -357,11 +362,11 @@ export default function CalendarScreen() {
               <Text style={styles.selectedDateTitle}>
                 {selectedDate.getFullYear()}년 {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 ({['일', '월', '화', '수', '목', '금', '토'][selectedDate.getDay()]})
               </Text>
-              
+
               {filteredRecordsForDate.length > 0 ? (
                 filteredRecordsForDate.map(r => (
-                  <TouchableOpacity 
-                    key={r.id} 
+                  <TouchableOpacity
+                    key={r.id}
                     style={styles.recordItem}
                     onPress={() => {
                       setActiveRecord(r);
@@ -369,13 +374,15 @@ export default function CalendarScreen() {
                     }}
                   >
                     <View style={[styles.typeIndicator, { backgroundColor: r.type === 'MIGRAINE' ? GREEN : (r.type === 'STOMACH' ? GOLD : BLUE) }]} />
-                    <Text style={styles.recordTime}>하루종일</Text>
+                    <Text style={styles.recordTime}>
+                      {r.date && r.date.includes('T') ? r.date.split('T')[1].substring(0, 5) : '하루종일'}
+                    </Text>
                     <Text style={styles.recordSuspected}>{r.summary?.suspected || '내용 없음'}</Text>
                   </TouchableOpacity>
                 ))
               ) : null}
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.recordItemPlus}
                 onPress={() => setAddModalVisible(true)}
               >
@@ -386,7 +393,7 @@ export default function CalendarScreen() {
         </View>
       </ScrollView>
 
-      <CalendarAddModal 
+      <CalendarAddModal
         visible={isAddModalVisible}
         onClose={() => setAddModalVisible(false)}
         onSave={saveRecord}
@@ -417,8 +424,8 @@ export default function CalendarScreen() {
                   {activeRecord?.type === 'DIAGNOSIS' ? '결과 요약 카드' : '등록된 일정'}
                 </Text>
                 <Text style={styles.modalSub}>
-                  {activeRecord?.type === 'DIAGNOSIS' 
-                    ? '의사 선생님께 이 화면을 보여주세요' 
+                  {activeRecord?.type === 'DIAGNOSIS'
+                    ? '의사 선생님께 이 화면을 보여주세요'
                     : '기록하신 일정의 상세 내용입니다'}
                 </Text>
               </View>
@@ -447,8 +454,8 @@ export default function CalendarScreen() {
                       <Text style={styles.detailValue}>진단 기록 참조</Text>
                     </View>
                     <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                        <Text style={styles.detailLabel}>진료 권장</Text>
-                        <Text style={[styles.detailValue, { color: BLUE }]}>{activeRecord.summary?.department || '-'}</Text>
+                      <Text style={styles.detailLabel}>진료 권장</Text>
+                      <Text style={[styles.detailValue, { color: BLUE }]}>{activeRecord.summary?.department || '-'}</Text>
                     </View>
                   </>
                 ) : null}
@@ -463,7 +470,7 @@ export default function CalendarScreen() {
             )}
 
             {activeRecord?.type === 'DIAGNOSIS' && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalBtn}
                 onPress={() => {
                   setModalVisible(false);
@@ -587,14 +594,14 @@ const styles = StyleSheet.create({
 
   listContainer: { paddingBottom: 20 },
   historyCard: {
-      backgroundColor: '#F3F4F6',
-      borderRadius: 20,
-      padding: 24,
-      marginBottom: 16,
-      shadowColor: '#000',
-      shadowOpacity: 0.05,
-      shadowRadius: 10,
-      elevation: 2,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   historyCardTitle: { fontSize: 16, fontWeight: '900', color: TEXT, marginBottom: 16 },
   historyDetailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
@@ -602,15 +609,15 @@ const styles = StyleSheet.create({
   historyValue: { fontSize: 13, color: '#6B7280' },
 
   addRecordBtn: {
-      height: 60,
-      backgroundColor: '#F3F4F6',
-      borderRadius: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
-      shadowColor: '#000',
-      shadowOpacity: 0.05,
-      shadowRadius: 10,
-      elevation: 2,
+    height: 60,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
   addRecordText: { fontSize: 15, fontWeight: '900', color: '#666' },
 });

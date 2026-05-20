@@ -8,6 +8,7 @@ import {
   TextInput,
   Modal,
   Alert,
+  ActivityIndicator, // ✅ 탈퇴 처리 중 중복 클릭 방지용 로딩 추가
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
@@ -20,9 +21,15 @@ export default function TermsWithdrawScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // ✅ 로딩 상태 관리 추가
 
   const canSubmit = useMemo(() => {
-    return password.trim().length > 0 && passwordConfirm.trim().length > 0;
+    // ✅ 두 입력창이 비어있지 않고, 두 비밀번호가 서로 일치할 때만 버튼 활성화
+    return (
+      password.trim().length > 0 &&
+      passwordConfirm.trim().length > 0 &&
+      password === passwordConfirm
+    );
   }, [password, passwordConfirm]);
 
   return (
@@ -49,9 +56,10 @@ export default function TermsWithdrawScreen({ navigation }: Props) {
           placeholder="현재 비밀번호"
           placeholderTextColor="#B6B6B6"
           secureTextEntry
+          autoCapitalize="none" // ✅ 첫 글자 대문자 자동 변환 방지
         />
 
-        <Text style={styles.label}>비밀번호</Text>
+        <Text style={styles.label}>비밀번호 확인</Text> {/* 라벨 텍스트 가독성 보완 */}
         <TextInput
           style={styles.inputBox}
           value={passwordConfirm}
@@ -59,14 +67,19 @@ export default function TermsWithdrawScreen({ navigation }: Props) {
           placeholder="비밀번호 재 입력"
           placeholderTextColor="#B6B6B6"
           secureTextEntry
+          autoCapitalize="none" // ✅ 첫 글자 대문자 자동 변환 방지
         />
 
         <TouchableOpacity
-          style={[styles.withdrawBtn, !canSubmit && styles.withdrawBtnDisabled]}
-          onPress={() => canSubmit && setShowConfirm(true)}
-          disabled={!canSubmit}
+          style={[styles.withdrawBtn, (!canSubmit || isLoading) && styles.withdrawBtnDisabled]}
+          onPress={() => canSubmit && !isLoading && setShowConfirm(true)}
+          disabled={!canSubmit || isLoading}
         >
-          <Text style={styles.withdrawBtnText}>탈퇴</Text>
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.withdrawBtnText}>탈퇴</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -79,6 +92,7 @@ export default function TermsWithdrawScreen({ navigation }: Props) {
               <TouchableOpacity
                 style={styles.confirmBtn}
                 onPress={() => setShowConfirm(false)}
+                disabled={isLoading}
               >
                 <Text style={styles.cancelText}>취소</Text>
               </TouchableOpacity>
@@ -87,21 +101,37 @@ export default function TermsWithdrawScreen({ navigation }: Props) {
 
               <TouchableOpacity
                 style={styles.confirmBtn}
+                disabled={isLoading}
                 onPress={async () => {
                   setShowConfirm(false);
+                  setIsLoading(true);
                   try {
+                    // ✅ 명세서 규칙에 맞춰 실제 회원 탈퇴 API 호출
                     await withdrawAccount();
+
+                    // ✅ 서버에서 탈퇴 성공 처리가 떨어졌을 때만 로컬 저장소 토큰 삭제 진행
                     await AsyncStorage.removeItem('accessToken');
                     await AsyncStorage.removeItem('refreshToken');
+
+                    // 오타 수정 ('탈퇴 환료' -> '탈퇴 완료')
+                    Alert.alert('탈퇴 완료', '그동안 서비스를 이용해 주셔서 감사합니다.', [
+                      {
+                        text: '확인',
+                        onPress: () => {
+                          if (navigation.reset) {
+                            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+                          } else {
+                            navigation.goBack();
+                          }
+                        }
+                      }
+                    ]);
                   } catch (e) {
-                    console.warn('API 실패', e);
-                    await AsyncStorage.removeItem('accessToken');
-                  }
-                  Alert.alert('탈퇴 환료', '그동안 서비스를 이용해 주셔서 감사합니다.');
-                  if (navigation.reset) {
-                    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-                  } else {
-                    navigation.goBack();
+                    console.warn('API 실패:', e);
+                    // ⭕ 서버 통신이 완전히 실패한 경우 강제로 앱 진입을 막고 오류 유저 피드백을 주도록 수정
+                    Alert.alert('오류', '비밀번호가 일치하지 않거나 서버 오류로 인해 탈퇴 처리에 실패했습니다.');
+                  } finally {
+                    setIsLoading(false);
                   }
                 }}
               >

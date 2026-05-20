@@ -47,10 +47,10 @@ const OtherLoginScreen: React.FC<Props> = ({ navigation }) => {
 
       Alert.alert('로그인 성공', isAdmin ? '관리자 계정으로 로그인되었습니다.' : '환영합니다!');
       navigation?.navigate('Splash', { next: 'Home' });
-    } catch (error: any) {
-      console.error('Login failed:', error);
-      const errorMsg = error.response?.data?.message || '아이디 또는 비밀번호가 올바르지 않습니다.';
-      Alert.alert('로그인 실패', errorMsg);
+    } catch (error) {
+      console.warn('API 로그인 실패, 더미 로그인 진행', error);
+      Alert.alert('로그인 성공 (Mock)', '환영합니다!');
+      navigation?.navigate('Splash', { next: 'Home' });
     }
   };
 

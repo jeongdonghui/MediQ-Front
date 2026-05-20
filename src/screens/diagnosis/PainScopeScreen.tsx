@@ -194,6 +194,7 @@ export default function PainScopeScreen({ navigation, route }: Props) {
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
