@@ -50,45 +50,7 @@ export const BOARD_GROUPS: BoardGroup[] = [
 ];
 
 // 초기 기본 더미 데이터 (서버 지연 시 로컬 UI가 멈추지 않도록 방어하는 초기값)
-const INITIAL_POSTS: AppCommunityPost[] = [
-  {
-    id: 1,
-    category: '자유게시판',
-    boardLabel: '자유게시판',
-    title: '오늘 날씨가 정말 좋네요.',
-    excerpt: '점심 산책 다녀왔는데 바람도 선선하고... 날씨가 너무 좋아서 기분이 상쾌해집니다 다들 좋은 하루 보내세요!',
-    content: '점심 산책 다녀왔는데 바람도 선선하고... 날씨가 너무 좋아서 기분이 상쾌해집니다 다들 좋은 하루 보내세요!',
-    author: '홍길동',
-    time: '5분 전',
-    views: 12,
-    likes: 4,
-    comments: 2,
-    images: [],
-    vote: null,
-    isLiked: false,
-    commentsList: [
-      { id: 101, commentId: 101, author: '김철수', content: '공감합니다! 날씨 최고네요.', time: '3분 전' },
-      { id: 102, commentId: 102, author: '이영희', content: '저도 산책 가야겠어요.', time: '2분 전' },
-    ],
-  },
-  {
-    id: 2,
-    category: '병원 소식',
-    boardLabel: '병원 소식',
-    title: '신규 의료 장비 도입 안내',
-    excerpt: '더 정확한 진단을 위해 최첨단 MRI 장비를... 이번에 새롭게 도입하여 가동을 시작했습니다. 많은 관심 부탁드립니다.',
-    content: '더 정확한 진단을 위해 최첨단 MRI 장비를... 이번에 새롭게 도입하여 가동을 시작했습니다. 많은 관심 부탁드립니다.',
-    author: '병원 관리자',
-    time: '1시간 전',
-    views: 89,
-    likes: 15,
-    comments: 0,
-    images: [],
-    vote: null,
-    isLiked: false,
-    commentsList: [],
-  },
-];
+const INITIAL_POSTS: AppCommunityPost[] = [];
 
 const STORAGE_KEY = '@mediq_community_posts_v1';
 let _memoryPosts: AppCommunityPost[] = [];

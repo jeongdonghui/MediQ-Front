@@ -42,7 +42,6 @@ import TermsPrivacyScreen from '../screens/menu/TermsPrivacyScreen';
 import TermsSymptomScreen from '../screens/menu/TermsSymptomScreen';
 import TermsWithdrawScreen from '../screens/menu/TermsWithdrawScreen';
 
-import NotificationScreen from '../screens/notifications/NotificationScreen';
 
 import CommunityHomeScreen from '../screens/community/CommunityHomeScreen';
 import CommunityCategoryScreen from '../screens/community/CommunityCategoryScreen';
@@ -130,7 +129,6 @@ export type RootStackParamList = {
   Splash: { next?: keyof RootStackParamList; payload?: any } | undefined;
   Home: undefined;
   Tutorial: undefined;
-  Notification: undefined;
   AdminHome: undefined;
 
   Login: undefined;
@@ -285,7 +283,6 @@ export default function AppNavigator() {
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Calendar" component={CalendarScreen} />
         <Stack.Screen name="Tutorial" component={TutorialScreen} />
-        <Stack.Screen name="Notification" component={NotificationScreen} />
         <Stack.Screen name="AdminHome" component={AdminHomeScreen} />
 
         <Stack.Screen name="SubscriptionService" component={SubscriptionServiceScreen} />

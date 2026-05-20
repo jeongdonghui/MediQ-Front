@@ -39,15 +39,6 @@ export const createReport = async (data: CreateReportRequest) => {
 };
 
 /**
- * 2. 내 보조 문진 전체 조회
- * GET /api/reports
- */
-export const getMyReports = async () => {
-  const response = await apiClient.get('/api/reports');
-  return response.data;
-};
-
-/**
  * 3. 보조 문진 상세 조회
  * GET /api/reports/{reportId}
  */
