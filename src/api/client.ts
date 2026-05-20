@@ -1,5 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 
 // 환경변수가 있다면 연결하고, 없다면 임시 백엔드 주소로 설정합니다.
 const BASE_URL = 'http://localhost:8080';
@@ -54,6 +55,13 @@ apiClient.interceptors.response.use(
         // 토큰 갱신 실패 시 로그아웃 로직(스토리지 비우기 및 로그인 화면 이동) 등 추가 가능
       }
     }
+    
+    // ✅ 403 에러(권한 없음) 발생 시 (관리자 전용 API 등)
+    if (error.response?.status === 403) {
+      Alert.alert('권한 없음', '관리자 권한이 없습니다.');
+      // 참고: 전역 네비게이션 ref를 통해 Home으로 튕겨내는 로직 추가 가능
+    }
+    
     return Promise.reject(error);
   }
 );

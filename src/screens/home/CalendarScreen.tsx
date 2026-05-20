@@ -13,7 +13,7 @@ import {
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import CalendarAddModal from './CalendarAddModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getCalendarMonthly, createCalendarEvent, deleteCalendarEvent, type CalendarEvent } from '../../api/calendar';
+import { getCalendarMonthly, createCalendarEvent, deleteCalendarEvent, type CalendarEventRequest, type CalendarEventResponse } from '../../api/calendar';
 
 const { width } = Dimensions.get('window');
 
@@ -97,20 +97,25 @@ export default function CalendarScreen() {
       const month = currentDate.getMonth() + 1;
       const data = await getCalendarMonthly(year, month);
       
-      // ✅ 명세서상 응답은 배열 형태입니다.
       if (data && Array.isArray(data)) {
-        const mapped = data.map((ev: any) => ({
-          id: String(ev.id),
-          date: ev.startDate,
-          summary: {
-            suspected: ev.title,
-            bodyPartLabel: ev.majorCategory || '진단 내역',
-            checklist: [],
-            department: ev.recommendedDepartment || '-',
-            shortExplain: ev.symptomExpression || '',
-          },
-          type: ev.type || (ev.reportId ? 'DIAGNOSIS' : 'EVENT'),
-        }));
+        const mapped = data.map((ev: any) => {
+          const sTime = ev.startDate?.includes('T') ? ev.startDate.split('T')[1].substring(0, 5) : '00:00';
+          const eTime = ev.endDate?.includes('T') ? ev.endDate.split('T')[1].substring(0, 5) : '00:00';
+          return {
+            id: String(ev.id),
+            date: ev.startDate || '',
+            startTime: sTime,
+            endTime: eTime,
+            summary: {
+              suspected: ev.title,
+              bodyPartLabel: ev.majorCategory || '진단 내역',
+              checklist: [],
+              department: ev.recommendedDepartment || '-',
+              shortExplain: ev.memo || ev.symptomExpression || '',
+            },
+            type: ev.type || (ev.reportId ? 'DIAGNOSIS' : 'EVENT'),
+          };
+        });
         setRecords(mapped);
       }
     } catch (e) {
@@ -120,12 +125,12 @@ export default function CalendarScreen() {
   };
 
   const saveRecord = async (newRecord: any) => {
-    const apiData: CalendarEvent = {
+    const baseDate = newRecord.date.split('T')[0];
+    const apiData: CalendarEventRequest = {
       title: newRecord.summary.suspected,
-      startDate: newRecord.date.split('T')[0],
-      endDate: newRecord.date.split('T')[0],
-      description: newRecord.summary.shortExplain,
-      type: 'EVENT',
+      startDate: `${baseDate}T${newRecord.startTime}:00`,
+      endDate: `${baseDate}T${newRecord.endTime}:00`,
+      memo: newRecord.summary.shortExplain,
     };
     try {
       // ✅ 서버 등록 시도

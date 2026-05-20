@@ -31,15 +31,6 @@ export default function CalendarAddModal({ visible, onClose, onSave }: Props) {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [startTime, setStartTime] = useState('18:00');
   const [endTime, setEndTime] = useState('19:00');
-  const [alarmMinutes, setAlarmMinutes] = useState(30);
-
-  const toggleAlarm = () => {
-    // 0(없음) -> 10 -> 30 -> 60 순환
-    if (alarmMinutes === 0) setAlarmMinutes(10);
-    else if (alarmMinutes === 10) setAlarmMinutes(30);
-    else if (alarmMinutes === 30) setAlarmMinutes(60);
-    else setAlarmMinutes(0);
-  };
 
   const handleSave = () => {
     if (!title.trim()) return;
@@ -48,13 +39,14 @@ export default function CalendarAddModal({ visible, onClose, onSave }: Props) {
     const newRecord = {
       id: Date.now().toString(),
       date: `${date}T${startTime}:00`,
+      startTime: startTime,
+      endTime: endTime,
       summary: {
         suspected: title,
         bodyPartLabel: '직접 입력',
         checklist: [],
         department: '-',
         shortExplain: memo,
-        alarm: alarmMinutes > 0 ? `${alarmMinutes}분 전` : '알람 없음',
       },
       type: 'EVENT',
     };
@@ -131,16 +123,6 @@ export default function CalendarAddModal({ visible, onClose, onSave }: Props) {
                     />
                 </View>
 
-                <View style={styles.divider} />
-
-                <TouchableOpacity style={styles.row} onPress={toggleAlarm}>
-                    <Text style={styles.icon}>🔔</Text>
-                    <View style={styles.chip}>
-                        <Text style={styles.chipText}>
-                          {alarmMinutes > 0 ? `${alarmMinutes}분 전 알람` : '알람 없음'}
-                        </Text>
-                    </View>
-                </TouchableOpacity>
 
                 <View style={[styles.row, { alignItems: 'flex-start', marginTop: 20 }]}>
                     <Text style={styles.icon}>📋</Text>

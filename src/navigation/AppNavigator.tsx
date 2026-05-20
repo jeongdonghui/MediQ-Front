@@ -61,6 +61,8 @@ import ResultScreen from '../screens/diagnosis/ResultScreen';
 import OTCMedicineScreen from '../screens/diagnosis/OTCMedicineScreen';
 import PharmacyMapScreen from '../screens/diagnosis/PharmacyMapScreen';
 
+import AdminHomeScreen from '../screens/admin/AdminHomeScreen';
+
 export type Area =
   | 'FULL_ETC'
   | 'HEAD_FACE'
@@ -129,6 +131,7 @@ export type RootStackParamList = {
   Home: undefined;
   Tutorial: undefined;
   Notification: undefined;
+  AdminHome: undefined;
 
   Login: undefined;
   KakaoLogin: undefined;
@@ -283,6 +286,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Calendar" component={CalendarScreen} />
         <Stack.Screen name="Tutorial" component={TutorialScreen} />
         <Stack.Screen name="Notification" component={NotificationScreen} />
+        <Stack.Screen name="AdminHome" component={AdminHomeScreen} />
 
         <Stack.Screen name="SubscriptionService" component={SubscriptionServiceScreen} />
         <Stack.Screen name="GooglePayment" component={GooglePaymentScreen} />

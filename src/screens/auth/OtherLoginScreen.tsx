@@ -36,7 +36,16 @@ const OtherLoginScreen: React.FC<Props> = ({ navigation }) => {
       if (res?.refreshToken) {
         await AsyncStorage.setItem('refreshToken', res.refreshToken);
       }
-      Alert.alert('로그인 성공', '환영합니다!');
+
+      // ✅ 관리자 권한 확인 로직 추가 (응답에 role이 있거나, 관리자 테스트 계정인 경우)
+      const isAdmin = res?.role === 'ADMIN' || userId === 'admin@mediq.com';
+      if (isAdmin) {
+        await AsyncStorage.setItem('userRole', 'ADMIN');
+      } else {
+        await AsyncStorage.removeItem('userRole');
+      }
+
+      Alert.alert('로그인 성공', isAdmin ? '관리자 계정으로 로그인되었습니다.' : '환영합니다!');
       navigation?.navigate('Splash', { next: 'Home' });
     } catch (error: any) {
       console.error('Login failed:', error);

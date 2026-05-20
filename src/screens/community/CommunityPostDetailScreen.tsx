@@ -11,6 +11,7 @@ import {
   Modal,
   Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { deleteCommunityPost, getCommunityPostDetail, togglePostLike, createPostComment } from '../../api/community';
@@ -37,6 +38,8 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
   const [detailData, setDetailData] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [replyingTo, setReplyingTo] = useState<any>(null); // ✅ 답글 대상 상태 추가
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [myNickname, setMyNickname] = useState('');
 
   const loadDetail = async () => {
     // ✅ 먼저 로컬 데이터 로드하여 즉각 반영
@@ -69,6 +72,9 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
   };
 
   React.useEffect(() => {
+    AsyncStorage.getItem('userRole').then(role => setIsAdmin(role === 'ADMIN'));
+    // TODO: getMyProfile() 등으로 현재 로그인한 사용자 식별자(myNickname)를 가져오는 로직 연동
+
     // ✅ 조회수 증가 (로컬)
     incrementPostViews(String(post.id));
     loadDetail();
@@ -219,9 +225,12 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
                 </View>
               </View>
 
-              <TouchableOpacity onPress={() => setActionSheetVisible(true)} style={{ paddingHorizontal: 10 }}>
-                <Text style={{ fontSize: 20, color: '#A0A0A0', fontWeight: 'bold', marginTop: -8 }}>⋮</Text>
-              </TouchableOpacity>
+              {/* 본인 글이거나 관리자일 때만 노출 (현재는 임시로 true로 두거나 isAdmin 체크) */}
+              {(isAdmin || true) && (
+                <TouchableOpacity onPress={() => setActionSheetVisible(true)} style={{ paddingHorizontal: 10 }}>
+                  <Text style={{ fontSize: 20, color: '#A0A0A0', fontWeight: 'bold', marginTop: -8 }}>⋮</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <Text style={styles.title}>{displayPost.title}</Text>
@@ -282,10 +291,15 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
                         {cmt?.isLiked ? '❤️' : '♡'} {Number(cmt?.likes) || 0}
                       </Text>
                     </TouchableOpacity>
-                    <Text style={styles.commentActionDivider}>|</Text>
-                    <TouchableOpacity onPress={() => handleRemoveComment(cmt?.id)}>
-                      <Text style={styles.commentActionIcon}>⋮</Text>
-                    </TouchableOpacity>
+                    {/* 본인 댓글이거나 관리자일 때만 노출 (현재는 임시로 true 또는 isAdmin) */}
+                    {(isAdmin || true) && (
+                      <>
+                        <Text style={styles.commentActionDivider}>|</Text>
+                        <TouchableOpacity onPress={() => handleRemoveComment(cmt?.id)}>
+                          <Text style={styles.commentActionIcon}>⋮</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
                   </View>
                 </View>
 
@@ -310,10 +324,15 @@ export default function CommunityPostDetailScreen({ navigation, route }: Props) 
                               {reply?.isLiked ? '❤️' : '♡'} {Number(reply?.likes) || 0}
                             </Text>
                           </TouchableOpacity>
-                          <Text style={styles.commentActionDivider}>|</Text>
-                          <TouchableOpacity onPress={() => handleRemoveComment(cmt?.id, reply?.id)}>
-                            <Text style={styles.commentActionIcon}>⋮</Text>
-                          </TouchableOpacity>
+                          {/* 대댓글 삭제 권한 체크 */}
+                          {(isAdmin || true) && (
+                            <>
+                              <Text style={styles.commentActionDivider}>|</Text>
+                              <TouchableOpacity onPress={() => handleRemoveComment(cmt?.id, reply?.id)}>
+                                <Text style={styles.commentActionIcon}>⋮</Text>
+                              </TouchableOpacity>
+                            </>
+                          )}
                         </View>
                       </View>
                       <Text style={styles.replyText}>{reply?.content || ''}</Text>

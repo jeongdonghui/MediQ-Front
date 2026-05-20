@@ -15,6 +15,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getMyProfile } from '../../api/users';
 
 const BLUE = '#0E7AF1';
@@ -42,12 +43,17 @@ export default function HomeScreen({ navigation }: Props) {
       image: require('../../assets/home/hospital_1.png'),
     }
   ]);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // 1. 프로필 선행 확보 (앱 구동 캐싱)
     getMyProfile().catch((err) => {
       console.error('Profile fetch failed on Home', err);
-      // 최초 홈 진입 시 프로필 로드 실패는 유도된 로그인 상태가 아닐 수 있으므로 로그만 남기거나 간단히 알림
+    });
+
+    // 관리자 권한 체크
+    AsyncStorage.getItem('userRole').then(role => {
+      if (role === 'ADMIN') setIsAdmin(true);
     });
 
     // 2. 가장 가까운 병원 3곳 구하기
@@ -144,6 +150,10 @@ export default function HomeScreen({ navigation }: Props) {
 
   const goKakaoMap = () => {
     navigation.navigate('KakaoMap');
+  };
+
+  const goAdminDashboard = () => {
+    navigation.navigate('AdminHome');
   };
 
   return (
@@ -266,6 +276,12 @@ export default function HomeScreen({ navigation }: Props) {
               <TouchableOpacity style={styles.quickBtn} onPress={goPharmacy}>
                 <Text style={styles.quickBtnText}>가까운 약국 찾기</Text>
               </TouchableOpacity>
+
+              {isAdmin && (
+                <TouchableOpacity style={[styles.quickBtn, { backgroundColor: '#374151' }]} onPress={goAdminDashboard}>
+                  <Text style={[styles.quickBtnText, { color: '#FFF' }]}>관리자 대시보드</Text>
+                </TouchableOpacity>
+              )}
             </View>
 
             <View style={styles.sectionCard}>
