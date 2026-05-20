@@ -74,11 +74,12 @@ export default function ResultScreen({ navigation, route }: Props) {
   // ✅ 캘린더 등록 API
   const registerToCalendar = async () => {
     try {
+      const baseDate = new Date().toISOString().split('T')[0];
       await createCalendarEvent({
         title: summary.suspected,
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date().toISOString().split('T')[0],
-        type: 'DIAGNOSIS',
+        startDate: `${baseDate}T00:00:00`,
+        endDate: `${baseDate}T23:59:00`,
+        memo: summary.shortExplain || '',
       });
 
       setIsSaved(true);

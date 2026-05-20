@@ -139,16 +139,8 @@ export default function CalendarScreen() {
       endDate: `${baseDate}T${newRecord.endTime}:00`,
       memo: newRecord.summary.shortExplain,
     };
-    try {
-      // 백엔드 엔드포인트 수용 스펙에 최적화하여 맵핑
-      const apiData: CalendarEvent = {
-        title: newRecord.summary.suspected,
-        startDate: newRecord.date, // 'YYYY-MM-DDTHH:mm:00' 풀 스트링을 그대로 넘겨 시간 유실 방지
-        endDate: newRecord.date,
-        description: newRecord.summary.shortExplain,
-        type: 'EVENT',
-      };
 
+    try {
       // 2. 서버에 저장 요청 전송
       await createCalendarEvent(apiData);
 
