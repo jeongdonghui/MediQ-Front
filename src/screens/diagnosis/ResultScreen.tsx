@@ -1,6 +1,6 @@
 // src/screens/diagnosis/ResultScreen.tsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -32,6 +32,20 @@ export default function ResultScreen({ navigation, route }: Props) {
   const [apiReport, setApiReport] = useState<any>(null);
 
   const [loading, setLoading] = useState(true);
+
+  // ✅ aiAnalysisResult 파싱: "[편두통] 관련 진료과: 신경과\n설명: ..." 형식
+  const parsedAi = useMemo(() => {
+    if (!apiReport?.aiAnalysisResult) return null;
+    const result: string = apiReport.aiAnalysisResult;
+    const nameMatch = result.match(/\[(.+?)\]/);
+    const deptMatch = result.match(/관련 진료과:\s*(.+)/);
+    const descMatch = result.match(/설명:\s*([\s\S]+)/);
+    return {
+      suspected: nameMatch ? nameMatch[1] : summary.suspected,
+      department: deptMatch ? deptMatch[1].trim() : summary.department,
+      description: descMatch ? descMatch[1].trim() : result,
+    };
+  }, [apiReport, summary]);
 
   // ✅ 상세조회 API
   useEffect(() => {
@@ -211,7 +225,7 @@ export default function ResultScreen({ navigation, route }: Props) {
         }}
       >
         <Text style={styles.bigTitle}>
-          {summary?.suspected || '분석 완료'} 증상이{'\n'}
+          {parsedAi?.suspected || summary?.suspected || '분석 중...'} 증상이{'\n'}
           의심됩니다.
         </Text>
 
@@ -222,15 +236,11 @@ export default function ResultScreen({ navigation, route }: Props) {
           </Text>
 
           <Text style={styles.diagTitle}>
-            {summary.suspected}
-            {summary.english
-              ? ` (${summary.english})`
-              : ''}
+            {parsedAi?.suspected || summary.suspected}
           </Text>
 
           <Text style={styles.blueDesc}>
-            {apiReport?.aiAnalysisResult ||
-              summary.shortExplain}
+            {parsedAi?.description || summary.shortExplain || '분석 결과를 불러오는 중입니다.'}
           </Text>
         </View>
 
@@ -260,7 +270,7 @@ export default function ResultScreen({ navigation, route }: Props) {
             </Text>
 
             <Text style={styles.rowValue}>
-              {summary.department}
+              {parsedAi?.department || summary.department}
             </Text>
           </View>
         </View>

@@ -213,70 +213,30 @@ export default function AIAnalysisScreen({
 
   // ✅ 결과 화면 이동
   const goResult = () => {
-    // TODO:
-    // 추후 실제 AI 응답 데이터로 교체 예정
-
-    const suspected =
-      area === 'HEAD_FACE'
-        ? '편두통'
-        : '근육통';
-
-    const english =
-      area === 'HEAD_FACE'
-        ? 'Migraine'
-        : 'Myalgia';
-
     navigation.replace('Result', {
       reportId,
-
       summary: {
-        suspected,
-
-        english,
-
-        shortExplain:
-          suspected === '편두통'
-            ? '한쪽 머리가 지끈거리고 빛이나 소리에 예민해질 수 있어요.'
-            : '근육 과사용이나 긴장으로 인해 통증이 발생할 수 있어요.',
-
+        // 실제 병명/진료과/설명은 ResultScreen에서 GET /api/reports/{reportId} 응답의
+        // aiAnalysisResult 필드를 파싱하여 표시합니다.
+        suspected: '분석 중...',
+        english: '',
+        shortExplain: '',
         bodyPartLabel: location,
-
         checklist: [
           {
             label: '선택 증상',
-            value:
-              symptoms?.length
-                ? symptoms.join(', ')
-                : '없음',
+            value: symptoms?.length ? symptoms.join(', ') : '없음',
           },
-          {
-            label: '발생 시점',
-            value: String(onset),
-          },
-          {
-            label: '통증 강도',
-            value: String(severityLevel),
-          },
+          { label: '발생 시점', value: String(onset) },
+          { label: '통증 강도', value: String(severityLevel) },
           {
             label: '통증 범위',
-            value:
-              painScopes?.length
-                ? painScopes.join(', ')
-                : '미선택',
+            value: painScopes?.length ? painScopes.join(', ') : '미선택',
           },
         ],
-
-        department:
-          suspected === '편두통'
-            ? '신경과 / 가정의학과'
-            : '정형외과 / 재활의학과',
-
+        department: '',
         urgency:
-          severityLevel >= 4
-            ? 'HIGH'
-            : severityLevel >= 3
-              ? 'MEDIUM'
-              : 'LOW',
+          severityLevel >= 4 ? 'HIGH' : severityLevel >= 3 ? 'MEDIUM' : 'LOW',
       },
     });
   };
