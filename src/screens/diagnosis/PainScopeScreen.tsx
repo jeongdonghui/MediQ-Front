@@ -19,12 +19,12 @@ const BLUE = '#3B82F6';
 const BG = '#F6F7FB';
 
 const ICONS: Record<PainScopeKey, any> = {
-  LOCALIZED: require('../../assets/image/pain_scope/pain_localized.png'),
-  DIFFUSE: require('../../assets/image/pain_scope/pain_diffuse.png'),
-  RADIATING: require('../../assets/image/pain_scope/pain_radiating.png'),
-  REFERRED: require('../../assets/image/pain_scope/pain_referred.png'),
-  MULTIPLE: require('../../assets/image/pain_scope/pain_multiple.png'),
-  MIGRATORY: require('../../assets/image/pain_scope/pain_migratory.png'),
+  LOCALIZED:  require('../../assets/image/pain_scope/pain_localized.png'),
+  DIFFUSE:    require('../../assets/image/pain_scope/pain_diffuse.png'),
+  RADIATING:  require('../../assets/image/pain_scope/pain_radiating.png'),
+  REFERRED:   require('../../assets/image/pain_scope/pain_referred.png'),
+  MULTIFOCAL: require('../../assets/image/pain_scope/pain_multiple.png'),
+  MIGRATORY:  require('../../assets/image/pain_scope/pain_migratory.png'),
 };
 
 const Q_ICON = require('../../assets/image/Qbtn.png');
@@ -71,9 +71,9 @@ export default function PainScopeScreen({ navigation, route }: Props) {
         helpQuestion: '실제로 문제 있는 부위와 다른 곳까지 같이 아픈가요?',
       },
       {
-        key: 'MULTIPLE',
+        key: 'MULTIFOCAL',
         titleKo: '다발성 통증',
-        titleEn: 'Multiple',
+        titleEn: 'Multifocal',
         bracket: '여러 군데',
         helpQuestion: '두 군데 이상이 동시에 아픈가요?',
       },

@@ -71,10 +71,10 @@ export default function ResultScreen({ navigation, route }: Props) {
     fetchReport();
   }, [reportId]);
 
-  // ✅ 상비약 이동
+  // ✅ 상비약 이동 — AI 파싱 결과 질환명 우선, 없으면 summary 사용
   const goOTC = () => {
     navigation.navigate('OTCMedicine', {
-      suspected: summary.suspected,
+      suspected: parsedAi?.suspected || summary.suspected,
     });
   };
 

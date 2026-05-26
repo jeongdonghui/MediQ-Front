@@ -2,12 +2,23 @@
 
 import { apiClient } from './client';
 
-export const getMedicinesByDisease = async (
-    diseaseName: string
-) => {
-    const response = await apiClient.get(
-        `/api/medicines?diseaseName=${encodeURIComponent(diseaseName)}`
-    );
+export interface MedicineItem {
+  rank: number;
+  ingredientName: string;
+}
 
-    return response.data;
+export interface OtcMedicineResponse {
+  diseaseName: string;
+  scenario: string;
+  medicines: MedicineItem[];
+  caution: string;
+}
+
+export const getMedicinesByDisease = async (
+  diseaseName: string,
+): Promise<OtcMedicineResponse> => {
+  const response = await apiClient.get(
+    `/api/medicines?diseaseName=${encodeURIComponent(diseaseName)}`,
+  );
+  return response.data;
 };

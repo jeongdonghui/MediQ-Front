@@ -146,8 +146,9 @@ export default function AIAnalysisScreen({
         );
 
         // ✅ 서버에서 생성된 report id 저장
-        if (res?.id) {
-          setReportId(res.id);
+        // POST /api/reports 는 Long 숫자 하나만 반환 (res 자체가 reportId)
+        if (res !== null && res !== undefined) {
+          setReportId(Number(res));
         }
       })
       .catch(err => {

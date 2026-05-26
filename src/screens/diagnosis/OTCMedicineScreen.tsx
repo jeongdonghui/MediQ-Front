@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import { getMedicinesByDisease } from '../../api/medicines';
+import { getMedicinesByDisease, OtcMedicineResponse } from '../../api/medicines';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OTCMedicine'>;
 
@@ -23,7 +23,7 @@ export default function OTCMedicineScreen({
 }: Props) {
   const { suspected } = route.params;
 
-  const [medicineData, setMedicineData] = useState<any>(null);
+  const [medicineData, setMedicineData] = useState<OtcMedicineResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -51,9 +51,6 @@ export default function OTCMedicineScreen({
 
   const goPharmacy = () =>
     navigation.navigate('PharmacyMap', { query: '약국' });
-
-  const isPrescriptionOnly =
-    medicineData?.ingredientName?.includes('처방 필수');
 
   return (
     <View style={styles.container}>
@@ -95,46 +92,39 @@ export default function OTCMedicineScreen({
               <Text style={styles.sectionTitle}>
                 추천 가능한 상비약이 없습니다.
               </Text>
-
               <Text style={styles.warningText}>
                 병원 진료를 권장합니다.
               </Text>
             </View>
-          ) : isPrescriptionOnly ? (
-            <View>
-              <Text style={styles.sectionTitle}>
-                처방 의약품 진료가 필요한 증상입니다.
-              </Text>
-
-              <Text style={styles.warningText}>
-                자가 복용보다 병원 진료를 우선 권장합니다.
-              </Text>
-            </View>
           ) : (
             <>
+              {/* 증상 시나리오 */}
+              {medicineData?.scenario ? (
+                <Text style={styles.scenario}>
+                  {medicineData.scenario}
+                </Text>
+              ) : null}
+
               <Text style={styles.sectionTitle}>
-                통증 완화 추천 의약품
+                통증 완화 추천 의약품 (Top 3)
               </Text>
 
               <View style={styles.table}>
-                <View style={styles.tableRow}>
-                  <Text style={styles.k}>추천 성분</Text>
-                  <Text style={styles.v}>
-                    {medicineData?.ingredientName || '-'}
-                  </Text>
-                </View>
+                {medicineData?.medicines?.map(item => (
+                  <View key={item.rank} style={styles.tableRow}>
+                    <Text style={styles.k}>
+                      {item.rank}순위
+                    </Text>
+                    <Text style={styles.v}>
+                      {item.ingredientName}
+                    </Text>
+                  </View>
+                ))}
 
-                <View style={styles.tableRow}>
-                  <Text style={styles.k}>대표 계열</Text>
-                  <Text style={styles.v}>
-                    {medicineData?.medicineName || '-'}
-                  </Text>
-                </View>
-
-                <View style={styles.tableRow}>
+                <View style={[styles.tableRow, styles.cautionRow]}>
                   <Text style={styles.k}>주의사항</Text>
-                  <Text style={styles.v}>
-                    {medicineData?.precautions || '-'}
+                  <Text style={[styles.v, styles.cautionText]}>
+                    {medicineData?.caution || '-'}
                   </Text>
                 </View>
               </View>
@@ -256,6 +246,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
+  scenario: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '700',
+    marginBottom: 10,
+    lineHeight: 18,
+  },
+
   table: {
     marginTop: 2,
   },
@@ -263,6 +261,12 @@ const styles = StyleSheet.create({
   tableRow: {
     flexDirection: 'row',
     paddingVertical: 10,
+  },
+
+  cautionRow: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    marginTop: 4,
   },
 
   k: {
@@ -279,6 +283,11 @@ const styles = StyleSheet.create({
     color: '#111827',
     textAlign: 'right',
     lineHeight: 18,
+  },
+
+  cautionText: {
+    color: '#EF4444',
+    fontWeight: '700',
   },
 
   midBtn: {

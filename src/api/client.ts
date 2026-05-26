@@ -2,8 +2,10 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 
-// 환경변수가 있다면 연결하고, 없다면 임시 백엔드 주소로 설정합니다.
-const BASE_URL = 'http://localhost:8080';
+// iOS 시뮬레이터: http://localhost:8080
+// Android 에뮬레이터: http://10.0.2.2:8080  ← 실기기 테스트 시 PC IP로 변경
+// 실기기 테스트: http://{PC_LOCAL_IP}:8080  (예: http://192.168.0.10:8080)
+const BASE_URL = 'http://10.0.2.2:8080';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
