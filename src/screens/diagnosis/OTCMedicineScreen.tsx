@@ -118,7 +118,6 @@ export default function OTCMedicineScreen({
               </Text>
 
               <View style={styles.table}>
-<<<<<<< HEAD
                 <View style={styles.tableRow}>
                   <Text style={styles.k}>추천 성분</Text>
                   <Text style={styles.v}>
