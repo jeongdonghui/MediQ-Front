@@ -93,7 +93,7 @@ export default function PainScopeScreen({ navigation, route }: Props) {
 
   const toggle = (k: PainScopeKey) => {
     setSelected((prev) =>
-      prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]
+      prev.includes(k) ? [] : [k]
     );
   };
 
@@ -123,7 +123,7 @@ export default function PainScopeScreen({ navigation, route }: Props) {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.h1}>어떤 통증인가요?</Text>
-        <Text style={styles.h2}>비슷한 통증을 모두 선택해주세요.</Text>
+        <Text style={styles.h2}>해당하는 통증 범위를 하나만 선택해주세요.</Text>
 
         <View style={styles.grid}>
           {cards.map((c) => {

@@ -24,6 +24,36 @@ const WHITE = '#FFFFFF';
 const BG = '#F6F7FB';
 const TEXT = '#111';
 
+const ONSET_MAP: Record<string, string> = {
+  NOW: '방금전',
+  TODAY: '오늘',
+  YESTERDAY: '어제',
+  DAYS_2_3: '2-3일',
+  WEEK_LESS: '일주일이하',
+  WEEK_PLUS: '일주일이상',
+};
+
+const PAIN_SCOPE_MAP: Record<string, string> = {
+  LOCALIZED: '국소 부위',
+  DIFFUSE: '넓은 부위',
+  MULTIPLE: '다발성 통증',
+  MIGRATORY: '유동성 통증',
+};
+
+const getHealthTip = (disease: string): string => {
+  const name = disease || '';
+  if (name.includes('결막염') || name.includes('안구')) {
+    return '손으로 눈을 비비지 마시고 청결을 유지해 주세요.';
+  }
+  if (name.includes('편두통') || name.includes('두통')) {
+    return '조용하고 어두운 곳에서 충분한 안정을 취하고 휴식해 주세요.';
+  }
+  if (name.includes('위염') || name.includes('위장') || name.includes('소화')) {
+    return '자극적인 음식을 피하시고 소화가 잘되는 음식을 섭취하세요.';
+  }
+  return '무리한 활동을 피하시고 따뜻한 물을 마시며 안정을 취해 주세요.';
+};
+
 interface DiagnosisRecord {
   id: string;
   date: string;
@@ -48,6 +78,7 @@ export default function CalendarScreen() {
   const [isAddModalVisible, setAddModalVisible] = useState(false);
   const [activeRecord, setActiveRecord] = useState<DiagnosisRecord | null>(null);
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+  const [apiError, setApiError] = useState<string | null>(null);
 
   // ✅ 초기 데이터 로드 (네트워크가 오프라인일 때 가동할 캐시 백업용으로 정비)
   useEffect(() => {
@@ -98,6 +129,7 @@ export default function CalendarScreen() {
   // 🚀 백엔드 월별 데이터 바인딩 연동 정밀 매핑
   const loadRecords = async () => {
     try {
+      setApiError(null);
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth() + 1;
       const data = await getCalendarMonthly(year, month);
@@ -113,17 +145,32 @@ export default function CalendarScreen() {
             summary: {
               suspected: ev.title,
               bodyPartLabel: ev.majorCategory || '진단 내역',
-              checklist: [],
+              checklist: [
+                { label: '선택 증상', value: ev.symptomExpression || '진단 기록 참조' },
+                { label: '발생 시점', value: ONSET_MAP[ev.onsetTime] || ev.onsetTime || '진단 기록 참조' },
+                { label: '통증 강도', value: ev.painIntensity !== null && ev.painIntensity !== undefined ? String(ev.painIntensity) : '1' },
+                { label: '통증 범위', value: PAIN_SCOPE_MAP[ev.painRange] || ev.painRange || 'DIFFUSE' },
+                { label: '진료 권장', value: ev.recommendedDepartment || '-' },
+              ],
               department: ev.recommendedDepartment || '-',
-              shortExplain: ev.memo || ev.symptomExpression || '',
+              shortExplain: ev.memo || '',
             },
-            type: ev.type || (ev.reportId ? 'DIAGNOSIS' : 'EVENT'),
+            type: ev.type || (
+              ev.reportId ||
+              ev.title === '편두통' ||
+              ev.title === '기능성 위장 장애' ||
+              ev.memo?.includes('AI 분석') ||
+              ev.memo?.includes('의심됩니다')
+                ? 'DIAGNOSIS'
+                : 'EVENT'
+            ),
           };
         });
         setRecords(mapped);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Failed to load calendar events from server', e);
+      setApiError(String(e?.message || e));
     }
   };
 
@@ -283,7 +330,9 @@ export default function CalendarScreen() {
             <Text style={styles.summaryTitle}>
               <Text style={{ fontWeight: '900' }}>{lastRecord.summary?.suspected || '일정'}</Text>이{'\n'}진행되고 있어요.
             </Text>
-            <Text style={styles.summarySub}>따뜻한 물과 찜질을 자주 해주세요</Text>
+            <Text style={styles.summarySub}>
+              {getHealthTip(lastRecord.summary?.suspected || '')}
+            </Text>
           </View>
         ) : (
           <View style={styles.summaryCard}>
@@ -367,7 +416,7 @@ export default function CalendarScreen() {
                   >
                     <View style={[styles.typeIndicator, { backgroundColor: r.type === 'MIGRAINE' ? GREEN : (r.type === 'STOMACH' ? GOLD : BLUE) }]} />
                     <Text style={styles.recordTime}>
-                      {r.date && r.date.includes('T') ? r.date.split('T')[1].substring(0, 5) : '하루종일'}
+                      {r.date && r.date.includes('T') ? (r.date.split('T')[1].substring(0, 5) === '00:00' ? '하루종일' : r.date.split('T')[1].substring(0, 5)) : '하루종일'}
                     </Text>
                     <Text style={styles.recordSuspected}>{r.summary?.suspected || '내용 없음'}</Text>
                   </TouchableOpacity>
@@ -430,27 +479,39 @@ export default function CalendarScreen() {
 
             {activeRecord && (
               <View style={styles.detailsList}>
-                <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>{activeRecord.type === 'DIAGNOSIS' ? '주호소 (CC)' : '제목'}</Text>
-                  <Text style={styles.detailValue}>{activeRecord.summary?.suspected || '내용 없음'}</Text>
-                </View>
-
-                {activeRecord.type === 'DIAGNOSIS' ? (
+                {activeRecord.type === 'DIAGNOSIS' && activeRecord.summary?.checklist && activeRecord.summary.checklist.length > 0 ? (
+                  // ✅ 의사 진단 카드 형태 그대로 렌더링
+                  activeRecord.summary.checklist.map((it: any, i: number) => (
+                    <View key={i} style={[styles.detailRow, i === activeRecord.summary.checklist.length - 1 && { borderBottomWidth: 0 }]}>
+                      <Text style={styles.detailLabel}>{it.label}</Text>
+                      <Text style={[styles.detailValue, it.label === '진료 권장' && { color: BLUE }]}>{it.value}</Text>
+                    </View>
+                  ))
+                ) : (
+                  // ✅ 일반 일정 형태 렌더링
                   <>
                     <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>발생부위</Text>
-                      <Text style={styles.detailValue}>{activeRecord.summary?.bodyPartLabel || '-'}</Text>
+                      <Text style={styles.detailLabel}>제목</Text>
+                      <Text style={styles.detailValue}>{activeRecord.summary?.suspected || '내용 없음'}</Text>
                     </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>발생 시점</Text>
-                      <Text style={styles.detailValue}>진단 기록 참조</Text>
-                    </View>
-                    <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                      <Text style={styles.detailLabel}>진료 권장</Text>
-                      <Text style={[styles.detailValue, { color: BLUE }]}>{activeRecord.summary?.department || '-'}</Text>
-                    </View>
+                    {activeRecord.type === 'DIAGNOSIS' && (
+                      <>
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>발생부위</Text>
+                          <Text style={styles.detailValue}>{activeRecord.summary?.bodyPartLabel || '-'}</Text>
+                        </View>
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>발생 시점</Text>
+                          <Text style={styles.detailValue}>진단 기록 참조</Text>
+                        </View>
+                        <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+                          <Text style={styles.detailLabel}>진료 권장</Text>
+                          <Text style={[styles.detailValue, { color: BLUE }]}>{activeRecord.summary?.department || '-'}</Text>
+                        </View>
+                      </>
+                    )}
                   </>
-                ) : null}
+                )}
 
                 {activeRecord.summary?.shortExplain ? (
                   <View style={[styles.detailRow, { borderTopWidth: 1, borderTopColor: '#F3F4F6', flexDirection: 'column', alignItems: 'flex-start' }]}>

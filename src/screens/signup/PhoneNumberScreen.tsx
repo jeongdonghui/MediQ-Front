@@ -54,7 +54,7 @@ export default function PhoneNumberScreen({ navigation, route }: Props) {
       routes: [
         {
           name: 'Birthdate',
-          params: { id, password, name, nickname },
+          params: { id, password, name, nickname, birthFront6, birthBack1 },
         },
       ],
     });

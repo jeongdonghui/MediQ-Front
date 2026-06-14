@@ -9,6 +9,7 @@ import {
   Animated,
   Easing,
   Image,
+  Alert,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
@@ -23,6 +24,22 @@ const BLUE = '#3B82F6';
 const BG = '#F6F7FB';
 
 const mascot = require('../../assets/image/mediq_character.png');
+
+const ONSET_MAP: Record<string, string> = {
+  NOW: '방금전',
+  TODAY: '오늘',
+  YESTERDAY: '어제',
+  DAYS_2_3: '2-3일',
+  WEEK_LESS: '일주일이하',
+  WEEK_PLUS: '일주일이상',
+};
+
+const PAIN_SCOPE_MAP: Record<string, string> = {
+  LOCALIZED: '국소 부위',
+  DIFFUSE: '넓은 부위',
+  MULTIPLE: '다발성 통증',
+  MIGRATORY: '유동성 통증',
+};
 
 export default function AIAnalysisScreen({
   navigation,
@@ -68,6 +85,9 @@ export default function AIAnalysisScreen({
   const [reportId, setReportId] = useState<number | null>(
     null
   );
+  
+  // ✅ 클로저 문제를 방지하기 위해 실시간 서버 응답을 저장할 Ref 추가
+  const reportIdRef = useRef<number | null>(null);
 
   const done = pct >= 100;
 
@@ -145,15 +165,24 @@ export default function AIAnalysisScreen({
           res
         );
 
-        // ✅ 서버에서 생성된 report id 저장
-        if (res?.id) {
-          setReportId(res.id);
+        // ✅ 백엔드 응답이 객체(res.id)이거나 숫자/문자열 단일값(res)인 경우 모두 처리
+        const idVal = res && typeof res === 'object' && 'id' in res ? res.id : Number(res);
+        if (idVal && !isNaN(idVal)) {
+          reportIdRef.current = idVal;
+          setReportId(idVal);
+        } else {
+          console.warn('Invalid report ID format received:', res);
         }
       })
       .catch(err => {
         console.warn(
           'Failed to create AI Report:',
           err
+        );
+        Alert.alert(
+          '분석 오류',
+          '서버로부터 진단 분석 결과를 생성하지 못했습니다.',
+          [{ text: '확인', onPress: () => navigation.goBack() }]
         );
       });
 
@@ -166,6 +195,11 @@ export default function AIAnalysisScreen({
     const timer = setInterval(() => {
       setPct(prev => {
         if (!mounted) return prev;
+
+        // API 응답(reportId)이 오기 전까지는 최대 95%에서 대기(락 걸기)
+        if (prev >= 95 && !reportIdRef.current) {
+          return 95;
+        }
 
         if (prev >= 100) {
           return 100;
@@ -227,11 +261,13 @@ export default function AIAnalysisScreen({
             label: '선택 증상',
             value: symptoms?.length ? symptoms.join(', ') : '없음',
           },
-          { label: '발생 시점', value: String(onset) },
+          { label: '발생 시점', value: ONSET_MAP[String(onset)] || String(onset) },
           { label: '통증 강도', value: String(severityLevel) },
           {
             label: '통증 범위',
-            value: painScopes?.length ? painScopes.join(', ') : '미선택',
+            value: painScopes?.length
+              ? painScopes.map((x: any) => PAIN_SCOPE_MAP[x] || x).join(', ')
+              : '미선택',
           },
         ],
         department: '',

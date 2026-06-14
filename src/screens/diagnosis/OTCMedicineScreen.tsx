@@ -37,10 +37,7 @@ export default function OTCMedicineScreen({
         setMedicineData(res);
       } catch (err: any) {
         console.warn('상비약 조회 실패', err);
-
-        if (err?.response?.status === 404) {
-          setNotFound(true);
-        }
+        setNotFound(true);
       } finally {
         setLoading(false);
       }
@@ -53,7 +50,15 @@ export default function OTCMedicineScreen({
     navigation.navigate('PharmacyMap', { query: '약국' });
 
   const isPrescriptionOnly =
-    medicineData?.ingredientName?.includes('처방 필수');
+    medicineData?.medicines?.some((m: any) =>
+      m.ingredientName?.includes('처방 필수')
+    ) || false;
+
+  const recommendedIngredients = medicineData?.medicines
+    ? medicineData.medicines
+        .map((m: any) => `${m.rank}. ${m.ingredientName}`)
+        .join('\n')
+    : '-';
 
   return (
     <View style={styles.container}>
@@ -120,21 +125,21 @@ export default function OTCMedicineScreen({
                 <View style={styles.tableRow}>
                   <Text style={styles.k}>추천 성분</Text>
                   <Text style={styles.v}>
-                    {medicineData?.ingredientName || '-'}
+                    {recommendedIngredients}
                   </Text>
                 </View>
 
                 <View style={styles.tableRow}>
-                  <Text style={styles.k}>대표 계열</Text>
+                  <Text style={styles.k}>증상 시나리오</Text>
                   <Text style={styles.v}>
-                    {medicineData?.medicineName || '-'}
+                    {medicineData?.scenario || '-'}
                   </Text>
                 </View>
 
                 <View style={styles.tableRow}>
                   <Text style={styles.k}>주의사항</Text>
                   <Text style={styles.v}>
-                    {medicineData?.precautions || '-'}
+                    {medicineData?.caution || '-'}
                   </Text>
                 </View>
               </View>

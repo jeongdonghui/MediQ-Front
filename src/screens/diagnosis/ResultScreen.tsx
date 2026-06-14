@@ -40,15 +40,25 @@ export default function ResultScreen({ navigation, route }: Props) {
     const nameMatch = result.match(/\[(.+?)\]/);
     const deptMatch = result.match(/관련 진료과:\s*(.+)/);
     const descMatch = result.match(/설명:\s*([\s\S]+)/);
+    
+    let description = descMatch ? descMatch[1].trim() : result;
+    if (!description || description.trim() === '') {
+      description = 'AI 분석이 성공적으로 완료되었습니다.';
+    }
+
     return {
       suspected: nameMatch ? nameMatch[1] : summary.suspected,
       department: deptMatch ? deptMatch[1].trim() : summary.department,
-      description: descMatch ? descMatch[1].trim() : result,
+      description: description,
     };
   }, [apiReport, summary]);
 
-  // ✅ 상세조회 API
+  // ✅ 상세조회 API (비동기 AI 분석 결과를 대기하기 위한 폴링 로직 구현)
   useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | null = null;
+    let attempts = 0;
+    const maxAttempts = 8; // 최대 16초 동안 폴링 (2초 간격)
+
     const fetchReport = async () => {
       try {
         if (!reportId) {
@@ -57,24 +67,50 @@ export default function ResultScreen({ navigation, route }: Props) {
         }
 
         const res = await getReportDetail(reportId);
-
-        console.log('상세 리포트 조회 성공:', res);
+        console.log(`상세 리포트 조회 시도 (${attempts + 1}):`, res);
 
         setApiReport(res);
+
+        // AI 분석 결과가 채워졌거나, 최대 시도 횟수에 도달하면 폴링 중단
+        if (res?.aiAnalysisResult || attempts >= maxAttempts) {
+          if (timer) {
+            clearInterval(timer);
+            timer = null;
+          }
+          setLoading(false);
+        }
       } catch (err) {
         console.warn('리포트 상세조회 실패:', err);
+        if (attempts >= maxAttempts) {
+          if (timer) {
+            clearInterval(timer);
+            timer = null;
+          }
+          setLoading(false);
+        }
       } finally {
-        setLoading(false);
+        attempts++;
       }
     };
 
+    // 최초 1회 실행
     fetchReport();
+
+    // 2초마다 주기적으로 조회 실행
+    timer = setInterval(fetchReport, 2000);
+
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
   }, [reportId]);
 
   // ✅ 상비약 이동
   const goOTC = () => {
     navigation.navigate('OTCMedicine', {
-      suspected: summary.suspected,
+      suspected: parsedAi?.suspected || summary.suspected,
     });
   };
 
@@ -88,13 +124,18 @@ export default function ResultScreen({ navigation, route }: Props) {
   // ✅ 캘린더 등록 API
   const registerToCalendar = async () => {
     try {
-      const baseDate = new Date().toISOString().split('T')[0];
+      // 로컬 시간 기준으로 안전하게 날짜(YYYY-MM-DD) 추출
+      const offset = new Date().getTimezoneOffset() * 60000;
+      const localISOTime = (new Date(Date.now() - offset)).toISOString();
+      const baseDate = localISOTime.split('T')[0];
+
       await createCalendarEvent({
-        title: summary.suspected,
+        title: parsedAi?.suspected || summary.suspected,
         startDate: `${baseDate}T00:00:00`,
         endDate: `${baseDate}T23:59:00`,
-        memo: summary.shortExplain || '',
-      });
+        memo: parsedAi?.description || summary.shortExplain || '',
+        reportId: reportId ? Number(reportId) : null,
+      } as any);
 
       setIsSaved(true);
 
@@ -244,10 +285,13 @@ export default function ResultScreen({ navigation, route }: Props) {
           </Text>
         </View>
 
-        {/* 의료진 카드 */}
+        {/* 결과 요약 카드 */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
-            의료진에게 보여줄 카드
+            결과 요약 카드
+          </Text>
+          <Text style={styles.cardSub}>
+            의사 선생님께 이 화면을 보여주세요
           </Text>
 
           {summary?.checklist?.map(
@@ -269,10 +313,19 @@ export default function ResultScreen({ navigation, route }: Props) {
               진료 권장
             </Text>
 
-            <Text style={styles.rowValue}>
+            <Text style={[styles.rowValue, { color: BLUE }]}>
               {parsedAi?.department || summary.department}
             </Text>
           </View>
+
+          <TouchableOpacity
+            style={styles.cardInnerBtn}
+            onPress={goOTC}
+          >
+            <Text style={styles.cardInnerBtnText}>
+              알맞은 상비약 보러가기
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* 피드백 */}
@@ -297,14 +350,6 @@ export default function ResultScreen({ navigation, route }: Props) {
         </View>
 
         {/* 기능 버튼 */}
-        <TouchableOpacity
-          style={styles.smallBtn}
-          onPress={goOTC}
-        >
-          <Text style={styles.smallBtnText}>
-            알맞은 상비약 보기
-          </Text>
-        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.smallBtn}
@@ -485,6 +530,26 @@ const styles = StyleSheet.create({
   bottomBtnText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '900',
+  },
+  cardSub: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: -6,
+    marginBottom: 14,
+    fontWeight: '700',
+  },
+  cardInnerBtn: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+  },
+  cardInnerBtnText: {
+    color: '#4B5563',
+    fontSize: 12.5,
     fontWeight: '900',
   },
 });

@@ -1,0 +1,15 @@
+﻿{
+    "body_input_data":  {
+                            "step_6_intensity":  2,
+                            "step_1_main_area":  "두부",
+                            "step_7_onset_time":  "TODAY",
+                            "step_5_pain_range":  "LOCALIZED",
+                            "step_4_symptom":  {
+                                                   "other_symptom_detail":  "",
+                                                   "is_other":  false,
+                                                   "type":  "머리가 띵해요"
+                                               },
+                            "step_3_sub_region":  "두부",
+                            "step_2_detailed_region":  "머리"
+                        }
+}

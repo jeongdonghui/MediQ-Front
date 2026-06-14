@@ -25,6 +25,7 @@ export default function BirthdateScreen({ navigation, route }: Props) {
   const nickname: string = params.nickname ?? '';
 
   // ✅ 뒤로 갔다가 다시 왔을 때 값 유지(있으면 채우기)
+  // ✅ 뒤로 갔다가 다시 왔을 때 값 유지(있으면 채우기)
   const initialFront6 = (params.birthFront6 ?? '').toString().replace(/\D/g, '').slice(0, 6);
   const initialBack1 = (params.birthBack1 ?? '').toString().replace(/\D/g, '').slice(0, 1);
 
@@ -71,8 +72,8 @@ export default function BirthdateScreen({ navigation, route }: Props) {
   };
 
   const onChangeBack = (t: string) => {
-    const digit = t.replace(/\D/g, '').slice(0, 1);
-    setBack1(digit);
+    const digits = t.replace(/\D/g, '').slice(0, 1);
+    setBack1(digits);
   };
 
   const isNextDisabled = useMemo(

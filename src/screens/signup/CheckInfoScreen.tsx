@@ -36,7 +36,7 @@ export default function CheckInfoScreen({ navigation, route }: Props) {
   const birthFront6: string = params.birthFront6 ?? '';
   const birthBack1: string = params.birthBack1 ?? '';
 
-  const birthDisplay = birthFront6 ? `${birthFront6} - ●●●●●●` : '';
+  const birthDisplay = birthFront6 && birthBack1 ? `${birthFront6} - ${birthBack1}●●●●●●` : '';
 
   // ✅ 뒤로: goBack 우선 / 스택이 꼬였을 때는 PhoneNumber로 복구
   const handleBack = () => {
@@ -103,13 +103,34 @@ export default function CheckInfoScreen({ navigation, route }: Props) {
     
     try {
       const signupData = {
-        loginId: id,
+        email: id,
         password: password,
         name: name,
         nickname: nickname,
         phoneNumber: phone,
-        birthDate: birthFront6 ? `19${birthFront6.slice(0, 2)}-${birthFront6.slice(2, 4)}-${birthFront6.slice(4, 6)}` : '', // 임시 매핑
-        gender: birthBack1 === '1' || birthBack1 === '3' ? 'MALE' : 'FEMALE',
+        birthDate: (() => {
+          if (!birthFront6 || !birthBack1) return '';
+          const yy = birthFront6.slice(0, 2);
+          const mm = birthFront6.slice(2, 4);
+          const dd = birthFront6.slice(4, 6);
+          let century = '19';
+          if (birthBack1 === '3' || birthBack1 === '4' || birthBack1 === '7' || birthBack1 === '8') {
+            century = '20';
+          } else if (birthBack1 === '9' || birthBack1 === '0') {
+            century = '18';
+          }
+          return `${century}${yy}-${mm}-${dd}`;
+        })(),
+        gender: (() => {
+          if (!birthBack1) return 'MALE';
+          return birthBack1 === '1' || birthBack1 === '3' || birthBack1 === '5' || birthBack1 === '7' || birthBack1 === '9'
+            ? 'MALE'
+            : 'FEMALE';
+        })(),
+        rrn: birthFront6 + birthBack1,
+        serviceTerms: termChecks[0] ?? false,
+        privacyPolicy: termChecks[1] ?? false,
+        marketing: termChecks[4] ?? false,
       };
       
       await signup(signupData);
@@ -126,9 +147,21 @@ export default function CheckInfoScreen({ navigation, route }: Props) {
           },
         ],
       });
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Signup failed', e);
-      Alert.alert('오류', '회원가입 중 서버 오류가 발생했습니다.');
+      let errorMsg = '회원가입 중 서버 오류가 발생했습니다.';
+      if (e.response?.data) {
+        if (typeof e.response.data === 'string') {
+          errorMsg = e.response.data;
+        } else if (e.response.data.message) {
+          errorMsg = e.response.data.message;
+        } else {
+          errorMsg = JSON.stringify(e.response.data);
+        }
+      } else if (e.message) {
+        errorMsg = e.message;
+      }
+      Alert.alert('오류', errorMsg);
     }
   };
 

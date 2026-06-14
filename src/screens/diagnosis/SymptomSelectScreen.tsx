@@ -32,10 +32,10 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
         headerDesc: '모두 선택해주세요.',
         items: [
           { key: '머리가 찌르는 듯이 아파요', label: '머리가 찌르는 듯이 아파요' },
-          { key: '머리가 뻐해요', label: '머리가 뻐해요' },
+          { key: '머리가 띵해요', label: '머리가 띵해요' },
           { key: '관자놀이가 지끈거려요', label: '관자놀이가 지끈거려요' },
           { key: '머리가 통증을 눌러요', label: '머리가 통증을 눌러요' },
-          { key: '뒷골이 뻐빳하고 당겨요', label: '뒷골이 뻐빳하고 당겨요' },
+          { key: '뒷골이 뻣뻣하고 당겨요', label: '뒷골이 뻣뻣하고 당겨요' },
         ] as SymptomItem[],
       };
     }
@@ -624,9 +624,12 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
 
   const toggle = (key: string) => {
     setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      const next = new Set<string>();
+      if (!prev.has(key)) {
+        next.add(key);
+        setOtherText('');
+        setOtherOpen(false);
+      }
       return next;
     });
   };
@@ -674,7 +677,9 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
 
         <View style={styles.header}>
           <Text style={styles.h1}>{headerTitle}</Text>
-          <Text style={styles.h2}>{headerDesc}</Text>
+          <Text style={styles.h2}>
+            {headerDesc === '모두 선택해주세요.' ? '해당하는 증상을 하나만 선택해주세요.' : headerDesc}
+          </Text>
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -685,7 +690,17 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
 
             {/* ✅ 기타: 누르면 입력칸 펼쳐짐 */}
             <Pressable
-              onPress={() => setOtherOpen((v) => !v)}
+              onPress={() => {
+                setOtherOpen((v) => {
+                  const nextOpen = !v;
+                  if (nextOpen) {
+                    setSelected(new Set());
+                  } else {
+                    setOtherText('');
+                  }
+                  return nextOpen;
+                });
+              }}
               style={({ pressed }) => [
                 styles.otherBtn,
                 pressed && { opacity: 0.97 },
@@ -700,7 +715,12 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
               <View style={styles.otherInputWrap}>
                 <TextInput
                   value={otherText}
-                  onChangeText={setOtherText}
+                  onChangeText={(text) => {
+                    setOtherText(text);
+                    if (text.trim().length > 0) {
+                      setSelected(new Set());
+                    }
+                  }}
                   placeholder="기타 증상을 입력해주세요"
                   placeholderTextColor="#B6BEC9"
                   style={styles.otherInput}

@@ -47,7 +47,7 @@ export default function HomeScreen({ navigation }: Props) {
   useEffect(() => {
     // 1. 프로필 선행 확보 (앱 구동 캐싱)
     getMyProfile().catch((err) => {
-      console.error('Profile fetch failed on Home', err);
+      console.warn('Profile fetch failed on Home', err);
     });
 
     // 관리자 권한 체크
