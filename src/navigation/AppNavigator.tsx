@@ -71,20 +71,20 @@ export type Area =
   | 'ARM_LEG';
 
 export type PainScopeKey =
-  | 'LOCALIZED'
-  | 'DIFFUSE'
-  | 'RADIATING'
-  | 'REFERRED'
-  | 'MULTIPLE'
-  | 'MIGRATORY';
+  | 'LOCALIZED'    // 국소 통증
+  | 'DIFFUSE'      // 확산 통증
+  | 'RADIATING'    // 방사통
+  | 'REFERRED'     // 연관통
+  | 'MULTIFOCAL'   // 다발성 통증 (구: MULTIPLE)
+  | 'MIGRATORY';   // 유동성 통증
 
 export type OnsetKey =
-  | 'NOW'
-  | 'TODAY'
-  | 'YESTERDAY'
-  | 'DAYS_2_3'
-  | 'WEEK_PLUS'
-  | 'MONTH_PLUS';
+  | 'JUST_NOW'     // 방금전 (구: NOW)
+  | 'TODAY'        // 오늘
+  | 'YESTERDAY'    // 어제
+  | 'DAYS_2_3'     // 2-3일
+  | 'WITHIN_WEEK'  // 일주일이하 (구: WEEK_PLUS)
+  | 'OVER_WEEK';   // 일주일이상 (구: MONTH_PLUS)
 
 export type SummaryCard = {
   suspected: string;

@@ -19,7 +19,7 @@ export default function PainSeverityScreen({ navigation, route }: Props) {
 
   const [severityLevel, setSeverityLevel] = useState(1); // 0~4
   // 💡 백엔드 스펙 및 내비게이션 파일(AppNavigator) 정의에 맞춰 적절한 기본값 매핑
-  const [onset, setOnset] = useState<any>('NOW');
+  const [onset, setOnset] = useState<OnsetKey>('JUST_NOW');
 
   const faces = useMemo(
     () => [
@@ -35,12 +35,12 @@ export default function PainSeverityScreen({ navigation, route }: Props) {
   // 🚀 요구사항 반영: '일주일이하', '일주일이상' 그리드로 수정 완료
   const onsetItems = useMemo(
     () => [
-      { key: 'NOW' as const, label: '방금전' },
-      { key: 'TODAY' as const, label: '오늘' },
-      { key: 'YESTERDAY' as const, label: '어제' },
-      { key: 'DAYS_2_3' as const, label: '2-3일' },
-      { key: 'WEEK_LESS' as const, label: '일주일이하' }, // 🛠️ 한달이상 제거 후 새로 매핑
-      { key: 'WEEK_PLUS' as const, label: '일주일이상' }, // 🛠️ 텍스트 정밀 수정
+      { key: 'JUST_NOW'    as const, label: '방금전' },
+      { key: 'TODAY'       as const, label: '오늘' },
+      { key: 'YESTERDAY'   as const, label: '어제' },
+      { key: 'DAYS_2_3'   as const, label: '2-3일' },
+      { key: 'WITHIN_WEEK' as const, label: '일주일이하' },
+      { key: 'OVER_WEEK'  as const, label: '일주일이상' },
     ],
     []
   );

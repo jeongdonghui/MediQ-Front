@@ -1,5 +1,14 @@
 import { apiClient } from './client';
 
+// 보조 문진 목록 응답 모델
+export interface ReportListItem {
+  id: number;
+  major_category: string;
+  minor_category: string;
+  pain_intensity: number;
+  createdDate: string;
+}
+
 // 증상 기록을 서버에 전송하는 요청 모델
 export interface CreateReportRequest {
   body_input_data: {
@@ -28,6 +37,15 @@ export interface ReportDetailResponse {
   aiAnalysisResult?: string; // AI가 분석한 병명 및 상세
   createdAt: string;
 }
+
+/**
+ * 2. 내 보조 문진 목록 조회
+ * GET /api/reports
+ */
+export const getMyReports = async (): Promise<ReportListItem[]> => {
+  const response = await apiClient.get('/api/reports');
+  return response.data;
+};
 
 /**
  * 1. 새 보조 문진 생성 (AI 분석 요청)

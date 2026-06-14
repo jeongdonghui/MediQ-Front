@@ -5,6 +5,7 @@ import { Alert } from 'react-native';
 // 환경변수가 있다면 연결하고, 없다면 임시 백엔드 주소로 설정합니다.
 const BASE_URL = 'http://43.200.51.223:8080';
 
+
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   timeout: 10000,
