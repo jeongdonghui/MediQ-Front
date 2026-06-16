@@ -128,6 +128,7 @@ Windows 환경에서 보안 정책(`PSSecurityException`)으로 인해 `npm run 
 |---|---|---|
 | **무선 디버깅 셋업** | `npm run connect-wireless` | `node scripts/adb-wifi.js` |
 | **포트 포워딩 일괄 적용** | `npm run adb-reverse` | `node scripts/adb-reverse.js` |
+| **빌드된 APK 직접 설치** | `npm run adb-install` | `node scripts/adb-install.js` |
 
 ---
 
