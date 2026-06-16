@@ -24,6 +24,8 @@ import { createCalendarEvent } from '../../api/calendar';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Result'>;
 
+const BLUE = '#3B82F6';
+
 export default function ResultScreen({ navigation, route }: Props) {
   const { summary, reportId } = route.params;
 

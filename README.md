@@ -115,3 +115,68 @@ To learn more about React Native, take a look at the following resources:
 - 윈도우 환경에서의 경로 이슈로 인해 안드로이드/iOS 네이티브 빌드 유물(`.cxx`, `build` 등) 중 일부는 의도적으로 제외되었습니다.
 - 본인의 로컬 작업 내역은 현재 `git stash`에 보관되어 있으며, 필요 시 이 브랜치 위에서 `git stash pop`을 통해 합칠 수 있습니다.
 
+---
+
+# 📱 무선 디버깅 및 다중 기기 연결 가이드 (Wireless Debugging & Multi-device Setup)
+
+USB 연결 포트 접촉 불량 문제를 해결하고, 여러 기기를 동시에 편리하게 테스트하기 위해 자동화 스크립트가 제공됩니다.
+
+## 1. 쉘 스크립트 실행 권한 오류 발생 시 (Windows PowerShell)
+Windows 환경에서 보안 정책(`PSSecurityException`)으로 인해 `npm run ...` 명령어가 막히는 경우, **`node`를 통해 직접 스크립트 파일을 실행**하시면 됩니다.
+
+| 구분 | 일반 명령어 (권장) | 윈도우 보안 정책 우회용 명령어 (대체) |
+|---|---|---|
+| **무선 디버깅 셋업** | `npm run connect-wireless` | `node scripts/adb-wifi.js` |
+| **포트 포워딩 일괄 적용** | `npm run adb-reverse` | `node scripts/adb-reverse.js` |
+
+---
+
+## 2. 자동 무선 연결 설정 순서 (USB -> 무선)
+1. 스마트폰을 **USB로 PC에 임시 연결**합니다. (스마트폰과 PC가 **동일한 Wi-Fi** 네트워크에 연결되어 있어야 합니다.)
+2. 터미널에서 아래 명령어를 실행합니다:
+   ```bash
+   node scripts/adb-wifi.js
+   ```
+3. 연결 성공 메시지가 출력되면 **USB 케이블을 분리**하셔도 무선으로 계속 사용이 가능합니다.
+
+---
+
+## 3. 수동 연결 가이드
+자동 스크립트로 연결이 되지 않는 경우 아래의 수동 방식으로 연결할 수 있습니다.
+
+### 방법 A: 무선 디버깅 페어링 방식 (Android 11 이상, USB 불필요)
+1. 스마트폰 **설정 -> 개발자 옵션 -> 무선 디버깅**을 활성화하고 들어갑니다.
+2. **"페어링 코드로 기기 페어링"**을 선택합니다.
+3. 표시된 IP 주소와 포트로 페어링을 시작합니다:
+   ```bash
+   adb pair [IP]:[페어링포트]
+   # 예: adb pair 192.168.1.100:39485
+   ```
+4. 스마트폰 화면에 뜬 **6자리 페어링 코드**를 터미널에 입력합니다.
+5. 페어링 완료 후, 무선 디버깅 메인 화면에 표시된 **최종 IP 주소 및 포트**로 연결합니다.
+   ```bash
+   adb connect [IP]:[최종연결포트]
+   # 예: adb connect 192.168.1.100:41235
+   ```
+6. Metro 서버 연결을 위해 포트를 포워딩합니다:
+   ```bash
+   node scripts/adb-reverse.js
+   ```
+
+### 방법 B: USB를 통한 TCP/IP 연결 방식
+1. 스마트폰을 USB로 연결한 상태에서 아래 명령어로 포트를 개방합니다:
+   ```bash
+   adb tcpip 5555
+   ```
+2. 스마트폰의 IP 주소(설정 -> 상태 -> IP 주소)를 확인하고 USB 케이블을 뽑습니다.
+3. 무선으로 기기를 연결합니다:
+   ```bash
+   adb connect [스마트폰IP]:5555
+   # 예: adb connect 192.168.1.100:5555
+   ```
+4. Metro 서버 연결을 위해 포트를 포워딩합니다:
+   ```bash
+   node scripts/adb-reverse.js
+   ```
+
+
