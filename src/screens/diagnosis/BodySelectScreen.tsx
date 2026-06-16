@@ -383,20 +383,20 @@ const styles = StyleSheet.create({
   },
 
   centerGap: {
-    width: 12,
-    backgroundColor: '#FFFFFF',
-    position: 'relative',
-  },
+  width: 12,
+  backgroundColor: '#FFFFFF',
+  position: 'relative',
+},
 
-  centerLine: {
-    position: 'absolute',
-    left: '50%',
-    top: 0,
-    bottom: 0,
-    width: 1,
-    marginLeft: -0.5,
-    backgroundColor: LINE,
-  },
+centerLine: {
+  position: 'absolute',
+  left: '50%',
+  top: 0,
+  bottom: 0,
+  width: 1,
+  marginLeft: -0.5,
+  backgroundColor: LINE,
+},
 
   labelLayer: {
     position: 'absolute',
