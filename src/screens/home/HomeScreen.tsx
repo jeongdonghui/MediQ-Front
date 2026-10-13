@@ -9,6 +9,8 @@ import {
   ScrollView,
   Image,
   SafeAreaView,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import type { ImageSourcePropType } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -490,17 +492,17 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    paddingBottom: 28,
+    paddingBottom: Platform.OS === 'android' ? 42 : 28,
   },
 
   hero: {
-  backgroundColor: BLUE,
-  minHeight: 326,
-  overflow: 'hidden',
-  paddingHorizontal: 16,
-  paddingTop: 10,
-  paddingBottom: 30,
-},
+    backgroundColor: BLUE,
+    minHeight: 326,
+    overflow: 'hidden',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) + 12 : 12,
+    paddingBottom: 30,
+  },
 
   heroCircle: {
     position: 'absolute',

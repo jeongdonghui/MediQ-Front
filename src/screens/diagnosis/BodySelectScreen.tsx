@@ -129,7 +129,7 @@ export default function BodySelectScreen({ navigation }: Props) {
           <View style={styles.rightCol}>
             <Cell
               area="HEAD_FACE"
-              style={[styles.rightCell, { flex: 1 }]}
+              style={[styles.rightCell, { flex: 1.72 }]}
             >
               <Image
                 source={img.HEAD_FACE}
@@ -140,7 +140,7 @@ export default function BodySelectScreen({ navigation }: Props) {
 
             <Cell
               area="NECK_CHEST"
-              style={[styles.rightCell, { flex: 1 }]}
+              style={[styles.rightCell, { flex: 1.86 }]}
             >
               <Image
                 source={img.NECK_CHEST}
@@ -151,7 +151,7 @@ export default function BodySelectScreen({ navigation }: Props) {
 
             <Cell
               area="PELVIS_WAIST"
-              style={[styles.rightCell, { flex: 1.7 }]}
+              style={[styles.rightCell, { flex: 3.2 }]}
             >
               <Image
                 source={img.PELVIS_WAIST}
@@ -162,7 +162,7 @@ export default function BodySelectScreen({ navigation }: Props) {
 
             <Cell
               area="ARM_LEG"
-              style={[styles.rightCell, { flex: 3.3 }]}
+              style={[styles.rightCell, { flex: 6.21 }]}
             >
               <Image
                 source={img.ARM_LEG}
@@ -353,50 +353,54 @@ const styles = StyleSheet.create({
   },
 
   leftImg: {
-    width: '122%',
+    position: 'absolute',
+    right: 0,
+    top: 0,
     height: '100%',
-    transform: [{ translateX: -20 }, { translateY: 8 }],
+    aspectRatio: 268 / 931,
   },
 
   imgHead: {
-    width: '120%',
-    height: '90%',
-    transform: [{ translateX: -13 }, { translateY: 8 }],
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    aspectRatio: 412 / 172,
   },
 
   imgNeck: {
-    width: '123%',
-    height: '98%',
-    transform: [{ translateX: -10 }, { translateY: 0 }],
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    aspectRatio: 414 / 186,
   },
 
   imgPelvis: {
-    width: '116%',
+    position: 'absolute',
+    left: 0,
+    top: 0,
     height: '100%',
-    transform: [{ translateX: -3 }, { translateY: 0 }],
+    aspectRatio: 410 / 320,
   },
 
   imgArmLeg: {
-    width: '116%',
+    position: 'absolute',
+    left: -2,
+    top: 0,
     height: '100%',
-    transform: [{ translateX: -3 }, { translateY: 0 }],
+    aspectRatio: 402 / 621,
   },
 
   centerGap: {
-  width: 12,
-  backgroundColor: '#FFFFFF',
-  position: 'relative',
-},
+    width: 1,
+    backgroundColor: LINE,
+    position: 'relative',
+  },
 
-centerLine: {
-  position: 'absolute',
-  left: '50%',
-  top: 0,
-  bottom: 0,
-  width: 1,
-  marginLeft: -0.5,
-  backgroundColor: LINE,
-},
+  centerLine: {
+    display: 'none',
+  },
 
   labelLayer: {
     position: 'absolute',
@@ -411,9 +415,9 @@ centerLine: {
     fontSize: 13,
     fontWeight: '700',
     color: '#6B7280',
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -425,7 +429,7 @@ centerLine: {
 
   labelRight1: {
     right: 14,
-    top: 12,
+    top: '3%',
     textAlign: 'right',
   },
 
@@ -443,7 +447,7 @@ centerLine: {
 
   labelRight4: {
     right: 14,
-    bottom: 182,
+    top: '52%',
     textAlign: 'right',
   },
 
