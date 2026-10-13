@@ -26,17 +26,21 @@ const BG = '#F6F7FB';
 const mascot = require('../../assets/image/mediq_character.png');
 
 const ONSET_MAP: Record<string, string> = {
+  JUST_NOW: '방금 전',
   NOW: '방금전',
   TODAY: '오늘',
   YESTERDAY: '어제',
-  DAYS_2_3: '2-3일',
-  WEEK_LESS: '일주일이하',
-  WEEK_PLUS: '일주일이상',
+  DAYS_2_3: '2~3일',
+  WITHIN_WEEK: '일주일 이하',
+  OVER_WEEK: '일주일 이상',
 };
 
 const PAIN_SCOPE_MAP: Record<string, string> = {
-  LOCALIZED: '국소 부위',
-  DIFFUSE: '넓은 부위',
+  LOCALIZED: '국소 통증',
+  DIFFUSE: '확산 통증',
+  RADIATING: '방사통',
+  REFERRED: '연관통',
+  MULTIFOCAL: '다발성 통증',
   MULTIPLE: '다발성 통증',
   MIGRATORY: '유동성 통증',
 };
@@ -132,8 +136,9 @@ export default function AIAnalysisScreen({
         step_4_symptom: {
           type:
             symptoms && symptoms.length > 0
-              ? symptoms[0]
+              ? symptoms.join(', ')
               : 'UNKNOWN',
+          types: symptoms || [],
 
           is_other: !!otherText,
 

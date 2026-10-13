@@ -17,6 +17,7 @@ export interface CreateReportRequest {
     step_3_sub_region: string;
     step_4_symptom: {
       type: string;
+      types?: string[];
       is_other: boolean;
       other_symptom_detail: string;
     };
