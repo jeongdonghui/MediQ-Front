@@ -129,7 +129,7 @@ export default function BodySelectScreen({ navigation }: Props) {
           <View style={styles.rightCol}>
             <Cell
               area="HEAD_FACE"
-              style={[styles.rightCell, { flex: 1 }]}
+              style={[styles.rightCell, { flex: 1.9 }]}
             >
               <Image
                 source={img.HEAD_FACE}
@@ -140,7 +140,7 @@ export default function BodySelectScreen({ navigation }: Props) {
 
             <Cell
               area="NECK_CHEST"
-              style={[styles.rightCell, { flex: 1 }]}
+              style={[styles.rightCell, { flex: 2.15 }]}
             >
               <Image
                 source={img.NECK_CHEST}
@@ -151,7 +151,7 @@ export default function BodySelectScreen({ navigation }: Props) {
 
             <Cell
               area="PELVIS_WAIST"
-              style={[styles.rightCell, { flex: 1.7 }]}
+              style={[styles.rightCell, { flex: 3.45 }]}
             >
               <Image
                 source={img.PELVIS_WAIST}
@@ -162,7 +162,7 @@ export default function BodySelectScreen({ navigation }: Props) {
 
             <Cell
               area="ARM_LEG"
-              style={[styles.rightCell, { flex: 3.3 }]}
+              style={[styles.rightCell, { flex: 6.5 }]}
             >
               <Image
                 source={img.ARM_LEG}
@@ -170,6 +170,12 @@ export default function BodySelectScreen({ navigation }: Props) {
                 resizeMode="contain"
               />
             </Cell>
+
+            <View pointerEvents="none" style={styles.rightSeparatorLayer}>
+              <View style={[styles.rightSeparator, { top: '13.6%' }]} />
+              <View style={[styles.rightSeparator, { top: '29.0%' }]} />
+              <View style={[styles.rightSeparator, { top: '53.6%' }]} />
+            </View>
           </View>
 
           {/* 라벨 */}
@@ -315,9 +321,7 @@ const styles = StyleSheet.create({
   },
 
   cellBase: {
-    borderColor: LINE,
-    borderWidth: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
 
@@ -336,11 +340,11 @@ const styles = StyleSheet.create({
   activeOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: SELECT_OVERLAY,
+    zIndex: 3,
   },
 
   leftCell: {
     flex: 1,
-    borderRightWidth: 0,
   },
 
   rightCol: {
@@ -349,54 +353,76 @@ const styles = StyleSheet.create({
   },
 
   rightCell: {
-    borderLeftWidth: 0,
+    zIndex: 2,
   },
 
   leftImg: {
-    width: '122%',
+    position: 'absolute',
+    right: -60,
+    top: 0,
     height: '100%',
-    transform: [{ translateX: -20 }, { translateY: 8 }],
+    aspectRatio: 268 / 931,
+    zIndex: 2,
   },
 
   imgHead: {
-    width: '120%',
-    height: '90%',
-    transform: [{ translateX: -13 }, { translateY: 8 }],
+    position: 'absolute',
+    left: '-86%',
+    top: 0,
+    height: '100%',
+    aspectRatio: 412 / 172,
+    zIndex: 2,
   },
 
   imgNeck: {
-    width: '123%',
-    height: '98%',
-    transform: [{ translateX: -10 }, { translateY: 0 }],
+    position: 'absolute',
+    left: '-84%',
+    top: -4,
+    height: '103%',
+    aspectRatio: 414 / 186,
+    zIndex: 2,
   },
 
   imgPelvis: {
-    width: '116%',
-    height: '100%',
-    transform: [{ translateX: -3 }, { translateY: 0 }],
+    position: 'absolute',
+    left: '-83%',
+    top: -6,
+    height: '103%',
+    aspectRatio: 410 / 320,
+    zIndex: 2,
   },
 
   imgArmLeg: {
-    width: '116%',
-    height: '100%',
-    transform: [{ translateX: -3 }, { translateY: 0 }],
+    position: 'absolute',
+    left: '-81%',
+    top: -7,
+    height: '101%',
+    aspectRatio: 402 / 621,
+    zIndex: 2,
+  },
+
+  rightSeparatorLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+  },
+
+  rightSeparator: {
+    position: 'absolute',
+    left: 170,
+    right: 0,
+    height: 1,
+    backgroundColor: LINE,
   },
 
   centerGap: {
-  width: 12,
-  backgroundColor: '#FFFFFF',
-  position: 'relative',
-},
+    width: 1,
+    backgroundColor: LINE,
+    position: 'relative',
+  },
 
-centerLine: {
-  position: 'absolute',
-  left: '50%',
-  top: 0,
-  bottom: 0,
-  width: 1,
-  marginLeft: -0.5,
-  backgroundColor: LINE,
-},
+  centerLine: {
+    display: 'none',
+  },
 
   labelLayer: {
     position: 'absolute',
@@ -404,6 +430,7 @@ centerLine: {
     right: 0,
     top: 0,
     bottom: 0,
+    zIndex: 5,
   },
 
   label: {
@@ -411,9 +438,9 @@ centerLine: {
     fontSize: 13,
     fontWeight: '700',
     color: '#6B7280',
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -425,7 +452,7 @@ centerLine: {
 
   labelRight1: {
     right: 14,
-    top: 12,
+    top: '3%',
     textAlign: 'right',
   },
 
@@ -443,7 +470,7 @@ centerLine: {
 
   labelRight4: {
     right: 14,
-    bottom: 182,
+    top: '52%',
     textAlign: 'right',
   },
 

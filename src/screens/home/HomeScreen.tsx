@@ -9,6 +9,8 @@ import {
   ScrollView,
   Image,
   SafeAreaView,
+  Platform,
+  StatusBar,
 } from 'react-native';
 import type { ImageSourcePropType } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -490,17 +492,17 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    paddingBottom: 28,
+    paddingBottom: Platform.OS === 'android' ? 42 : 28,
   },
 
   hero: {
-  backgroundColor: BLUE,
-  minHeight: 326,
-  overflow: 'hidden',
-  paddingHorizontal: 16,
-  paddingTop: 10,
-  paddingBottom: 30,
-},
+    backgroundColor: BLUE,
+    minHeight: 326,
+    overflow: 'hidden',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 6,
+    paddingBottom: 30,
+  },
 
   heroCircle: {
     position: 'absolute',
@@ -549,6 +551,7 @@ heroChevronIconWhite: {
     justifyContent: 'flex-end',
     gap: 12,
     zIndex: 2,
+    transform: [{ translateY: -16 }],
   },
 
   topIconBtn: {
@@ -566,7 +569,7 @@ heroChevronIconWhite: {
   heroInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 39,
+    marginTop: -28,
     zIndex: 2,
   },
 
@@ -714,7 +717,7 @@ guideIconLine: {
 },
 
   cardsSection: {
-    marginTop: -32,
+    marginTop: -18,
     paddingHorizontal: 16,
   },
 
