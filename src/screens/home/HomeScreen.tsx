@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     minHeight: 326,
     overflow: 'hidden',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) + 12 : 12,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 6,
     paddingBottom: 30,
   },
 
@@ -551,6 +551,7 @@ heroChevronIconWhite: {
     justifyContent: 'flex-end',
     gap: 12,
     zIndex: 2,
+    transform: [{ translateY: -16 }],
   },
 
   topIconBtn: {
@@ -568,7 +569,7 @@ heroChevronIconWhite: {
   heroInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 39,
+    marginTop: -28,
     zIndex: 2,
   },
 
@@ -716,7 +717,7 @@ guideIconLine: {
 },
 
   cardsSection: {
-    marginTop: -32,
+    marginTop: -18,
     paddingHorizontal: 16,
   },
 

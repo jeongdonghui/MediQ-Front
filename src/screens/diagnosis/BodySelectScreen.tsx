@@ -129,7 +129,7 @@ export default function BodySelectScreen({ navigation }: Props) {
           <View style={styles.rightCol}>
             <Cell
               area="HEAD_FACE"
-              style={[styles.rightCell, { flex: 1.72 }]}
+              style={[styles.rightCell, { flex: 1.9 }]}
             >
               <Image
                 source={img.HEAD_FACE}
@@ -140,7 +140,7 @@ export default function BodySelectScreen({ navigation }: Props) {
 
             <Cell
               area="NECK_CHEST"
-              style={[styles.rightCell, { flex: 1.86 }]}
+              style={[styles.rightCell, { flex: 2.15 }]}
             >
               <Image
                 source={img.NECK_CHEST}
@@ -151,7 +151,7 @@ export default function BodySelectScreen({ navigation }: Props) {
 
             <Cell
               area="PELVIS_WAIST"
-              style={[styles.rightCell, { flex: 3.2 }]}
+              style={[styles.rightCell, { flex: 3.45 }]}
             >
               <Image
                 source={img.PELVIS_WAIST}
@@ -162,7 +162,7 @@ export default function BodySelectScreen({ navigation }: Props) {
 
             <Cell
               area="ARM_LEG"
-              style={[styles.rightCell, { flex: 6.21 }]}
+              style={[styles.rightCell, { flex: 6.5 }]}
             >
               <Image
                 source={img.ARM_LEG}
@@ -170,6 +170,12 @@ export default function BodySelectScreen({ navigation }: Props) {
                 resizeMode="contain"
               />
             </Cell>
+
+            <View pointerEvents="none" style={styles.rightSeparatorLayer}>
+              <View style={[styles.rightSeparator, { top: '13.6%' }]} />
+              <View style={[styles.rightSeparator, { top: '29.0%' }]} />
+              <View style={[styles.rightSeparator, { top: '53.6%' }]} />
+            </View>
           </View>
 
           {/* 라벨 */}
@@ -315,9 +321,7 @@ const styles = StyleSheet.create({
   },
 
   cellBase: {
-    borderColor: LINE,
-    borderWidth: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
 
@@ -336,11 +340,11 @@ const styles = StyleSheet.create({
   activeOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: SELECT_OVERLAY,
+    zIndex: 3,
   },
 
   leftCell: {
     flex: 1,
-    borderRightWidth: 0,
   },
 
   rightCol: {
@@ -349,47 +353,65 @@ const styles = StyleSheet.create({
   },
 
   rightCell: {
-    borderLeftWidth: 0,
+    zIndex: 2,
   },
 
   leftImg: {
     position: 'absolute',
-    right: 0,
+    right: -60,
     top: 0,
     height: '100%',
     aspectRatio: 268 / 931,
+    zIndex: 2,
   },
 
   imgHead: {
     position: 'absolute',
-    left: 0,
+    left: '-86%',
     top: 0,
     height: '100%',
     aspectRatio: 412 / 172,
+    zIndex: 2,
   },
 
   imgNeck: {
     position: 'absolute',
-    left: 0,
-    top: 0,
-    height: '100%',
+    left: '-84%',
+    top: -4,
+    height: '103%',
     aspectRatio: 414 / 186,
+    zIndex: 2,
   },
 
   imgPelvis: {
     position: 'absolute',
-    left: 0,
-    top: 0,
-    height: '100%',
+    left: '-83%',
+    top: -6,
+    height: '103%',
     aspectRatio: 410 / 320,
+    zIndex: 2,
   },
 
   imgArmLeg: {
     position: 'absolute',
-    left: -2,
-    top: 0,
-    height: '100%',
+    left: '-81%',
+    top: -7,
+    height: '101%',
     aspectRatio: 402 / 621,
+    zIndex: 2,
+  },
+
+  rightSeparatorLayer: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
+  },
+
+  rightSeparator: {
+    position: 'absolute',
+    left: 170,
+    right: 0,
+    height: 1,
+    backgroundColor: LINE,
   },
 
   centerGap: {
@@ -408,6 +430,7 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     bottom: 0,
+    zIndex: 5,
   },
 
   label: {
