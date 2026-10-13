@@ -184,10 +184,27 @@ export default function AIAnalysisScreen({
           'Failed to create AI Report:',
           err
         );
+
+        const status = err?.response?.status;
+        const isAuthExpired = err?.isAuthExpired || status === 401;
+
         Alert.alert(
-          '분석 오류',
-          '서버로부터 진단 분석 결과를 생성하지 못했습니다.',
-          [{ text: '확인', onPress: () => navigation.goBack() }]
+          isAuthExpired ? '로그인 만료' : '분석 오류',
+          isAuthExpired
+            ? '로그인이 만료되었습니다. 다시 로그인한 뒤 분석을 진행해주세요.'
+            : '서버로부터 진단 분석 결과를 생성하지 못했습니다.',
+          [
+            {
+              text: '확인',
+              onPress: () => {
+                if (isAuthExpired) {
+                  navigation.replace('Login');
+                  return;
+                }
+                navigation.goBack();
+              },
+            },
+          ]
         );
       });
 
