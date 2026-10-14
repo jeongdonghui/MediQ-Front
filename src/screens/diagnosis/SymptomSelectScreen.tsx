@@ -278,7 +278,7 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
           { key: '찌릿찌릿해요', label: '찌릿찌릿해요' },
           { key: '묵직해요', label: '묵직해요' },
           { key: '콕콕 쑤셔요', label: '콕콕 쑤셔요' },
-          { key: '쥐어짜듯 아파요', label: '어짜듯 아파요' },
+          { key: '쥐어짜듯 아파요', label: '쥐어짜듯 아파요' },
           { key: '결려요', label: '결려요' },
         ],
       };
@@ -292,7 +292,7 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
           { key: '찌릿찌릿해요', label: '찌릿찌릿해요' },
           { key: '묵직해요', label: '묵직해요' },
           { key: '콕콕 쑤셔요', label: '콕콕 쑤셔요' },
-          { key: '쥐어짜듯 아파요', label: '어짜듯 아파요' },
+          { key: '쥐어짜듯 아파요', label: '쥐어짜듯 아파요' },
           { key: '결려요', label: '결려요' },
         ],
       };
@@ -306,7 +306,7 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
           { key: '찌릿찌릿해요', label: '찌릿찌릿해요' },
           { key: '묵직해요', label: '묵직해요' },
           { key: '콕콕 쑤셔요', label: '콕콕 쑤셔요' },
-          { key: '쥐어짜듯 아파요', label: '어짜듯 아파요' },
+          { key: '쥐어짜듯 아파요', label: '쥐어짜듯 아파요' },
           { key: '결려요', label: '결려요' },
         ],
       };
@@ -383,9 +383,9 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
       };
     }
 
-    if (location === '심팔 및 팔꿈치') {
+    if (location === '상팔 및 팔꿈치') {
       return {
-        headerTitle: '심팔 및 팔꿈치 쪽이 어떻게 아프신가요?',
+        headerTitle: '상팔 및 팔꿈치 쪽이 어떻게 아프신가요?',
         headerDesc: '모두 선택해주세요.',
         items: [
           { key: '시려요', label: '시려요' },
@@ -420,7 +420,7 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
           { key: '남의 살 같아요', label: '남의 살 같아요' },
           { key: '주먹이 잘 안쥐어져요', label: '주먹이 잘 안쥐어져요' },
           { key: '마디가 욱신거려요', label: '마디가 욱신거려요' },
-          { key: '퉁퉁 부엇어요', label: '퉁퉁 부엇어요' },
+          { key: '퉁퉁 부었어요', label: '퉁퉁 부었어요' },
         ],
       };
     }
@@ -502,7 +502,7 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
         headerDesc: '모두 선택해주세요.',
         items: [
           { key: '퉁퉁 부었어요', label: '퉁퉁 부었어요' },
-          { key: '딱딱한게 만져져요', label: '딱딱한게 만져져요' },
+          { key: '딱딱한 게 만져져요', label: '딱딱한 게 만져져요' },
           { key: '시퍼렇게 멍들었어요', label: '시퍼렇게 멍들었어요' },
           { key: '몽우리가 잡혀요', label: '몽우리가 잡혀요' },
           { key: '살이 터질 거 같아요', label: '살이 터질 거 같아요' },
@@ -515,11 +515,11 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
         headerTitle: '감각이상 쪽이 어떻게 아프신가요?',
         headerDesc: '모두 선택해주세요.',
         items: [
-          { key: '찌릿찌릿거렬요', label: '찌릿찌릿거렬요' },
+          { key: '찌릿찌릿거려요', label: '찌릿찌릿거려요' },
           { key: '남의 살 같아요', label: '남의 살 같아요' },
           { key: '전기가 통하듯 저릿저릿 아파요', label: '전기가 통하듯 저릿저릿 아파요' },
           { key: '감각이 둔해요', label: '감각이 둔해요' },
-          { key: '스치가만 해도 아파요', label: '스치가만 해도 아파요' },
+          { key: '스치기만 해도 아파요', label: '스치기만 해도 아파요' },
         ],
       };
     }
@@ -533,7 +533,7 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
           { key: '세상이 빙빙 돌아요', label: '세상이 빙빙 돌아요' },
           { key: '중심을 못 잡겠어요', label: '중심을 못 잡겠어요' },
           { key: '머리가 갑자기 핑 돌아요', label: '머리가 갑자기 핑 돌아요' },
-          { key: '몸이 내 마음대로 안움직여요', label: '몸이 내 마음대로 안움직여요' },
+          { key: '몸이 내 마음대로 안 움직여요', label: '몸이 내 마음대로 안 움직여요' },
         ],
       };
     }
@@ -557,11 +557,11 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
         headerTitle: '순환 및 대사 쪽이 어떻게 아프신가요?',
         headerDesc: '모두 선택해주세요.',
         items: [
-          { key: '식은 땀이 줄줄 흘러요', label: '덜덜 떨려요' },
-          { key: '목이 타들어가요', label: '세상이 빙빙 돌아요' },
-          { key: '입이 자꾸 말라요', label: '중심을 못 잡겠어요' },
-          { key: '기운이 하나도 없어요', label: '머리가 갑자기 핑 돌아요' },
-          { key: '몸이 축 늘어져요', label: '몸이 내 마음대로 안움직여요' },
+          { key: '식은땀이 줄줄 흘러요', label: '식은땀이 줄줄 흘러요' },
+          { key: '목이 타들어가요', label: '목이 타들어가요' },
+          { key: '입이 자꾸 말라요', label: '입이 자꾸 말라요' },
+          { key: '기운이 하나도 없어요', label: '기운이 하나도 없어요' },
+          { key: '몸이 축 늘어져요', label: '몸이 축 늘어져요' },
         ],
       };
     }
@@ -589,7 +589,7 @@ export default function SymptomSelectScreen({ navigation, route }: Props) {
           { key: '뻐근해요', label: '뻐근해요' },
           { key: '찌릿찌릿해요', label: '찌릿찌릿해요' },
           { key: '끊어질 듯이 아파요', label: '끊어질 듯이 아파요' },
-          { key: '아파서 펴질 못하겠어요', label: '아파서 펴질 못하겠어요' },
+          { key: '아파서 펴지 못하겠어요', label: '아파서 펴지 못하겠어요' },
         ],
       };
     }

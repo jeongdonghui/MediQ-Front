@@ -117,11 +117,11 @@ export default function DetailLocationScreen({ navigation, route }: Props) {
     //팔다리
     if (area === 'ARM_LEG' && category === 'ARM') {
       return {
-        headerTitle: '팔 및 서혜부 쪽 아픈 곳을 눌러주세요.',
+        headerTitle: '팔 쪽 아픈 곳을 눌러주세요.',
         headerDesc: '불편한 부위를 선택해주세요.',
         items: [
           { key: '어깨', title: '어깨' },
-          { key: '심팔 및 팔꿈치', title: '심팔 및 팔꿈치' },
+          { key: '상팔 및 팔꿈치', title: '상팔 및 팔꿈치' },
           { key: '아랫팔 및 손목', title: '아랫팔 및 손목' },
           { key: '손', title: '손' },
         ]
@@ -130,7 +130,7 @@ export default function DetailLocationScreen({ navigation, route }: Props) {
 
     if (area === 'ARM_LEG' && category === 'LEG') {
       return {
-        headerTitle: '다리 및 서혜부 쪽 아픈 곳을 눌러주세요.',
+        headerTitle: '다리 쪽 아픈 곳을 눌러주세요.',
         headerDesc: '불편한 부위를 선택해주세요.',
         items: [
           { key: '허벅지 및 고관절', title: '허벅지 및 고관절' },

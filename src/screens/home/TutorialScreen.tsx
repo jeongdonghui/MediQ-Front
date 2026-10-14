@@ -163,7 +163,7 @@ export default function TutorialScreen({ navigation }: Props) {
           <Image
             source={page.image}
             style={styles.tutorialImage}
-            resizeMode="cover"
+            resizeMode="contain"
           />
         </View>
 

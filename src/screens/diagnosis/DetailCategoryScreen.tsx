@@ -47,7 +47,7 @@ export default function DetailCategoryScreen({ navigation, route }: Props) {
           { key: 'UPPER ABDOMEN', title: '상복부', desc: '우상복부 / 좌상복부 / 상복부 중앙 ' },
           { key: 'MIDDLE ABDOMEN', title: '중복부', desc: '배꼽 주변 / 옆구리' },
           { key: 'LOWER ABDOMEN', title: '하복부', desc: '우하복부 / 좌하복부 / 하복부 중앙' },
-          { key: 'PELVIS_GROIN', title: '골반 및 서해부', desc: '골반뼈 부근 / 사타구니 / 생식기 / 항문' },
+          { key: 'PELVIS_GROIN', title: '골반 및 서혜부', desc: '골반뼈 부근 / 사타구니 / 생식기 / 항문' },
         ] as CardItem[],
       };
     }
@@ -57,7 +57,7 @@ export default function DetailCategoryScreen({ navigation, route }: Props) {
         headerTitle: '팔/다리 쪽 아픈 곳을 눌러주세요.',
         headerDesc: '불편한 부위를 선택해주세요.',
         items: [
-          { key: 'ARM', title: '팔', desc: '어깨 / 심팔 및 팔꿈치 / 아랫 팔 및 손목 / 손' },
+          { key: 'ARM', title: '팔', desc: '어깨 / 상팔 및 팔꿈치 / 아랫팔 및 손목 / 손' },
           { key: 'LEG', title: '다리', desc: '허벅지 및 고관절 /  무릎 / 종아리 및 발목 / 발' },
         ] as CardItem[],
       };
@@ -65,7 +65,7 @@ export default function DetailCategoryScreen({ navigation, route }: Props) {
 
     if (area === 'FULL_ETC') {
       return {
-        headerTitle: '복부/골반 쪽 아픈 곳을 눌러주세요.',
+        headerTitle: '전신/기타 쪽 아픈 곳을 눌러주세요.',
         headerDesc: '불편한 부위를 선택해주세요.',
         items: [
           { key: 'SKIN', title: '피부' },
